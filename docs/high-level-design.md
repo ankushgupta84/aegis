@@ -43,17 +43,21 @@ Product tenets (`product.md` §4) drive these design tenets:
 
 ## 4. Data plane
 
-**Protocols.** HTTP/1.1, HTTP/2 (ALPN), and WebSocket to clients; HTTP/1.1 to backends. HTTP/2 and WebSocket are decoded to the same request object. For WebSocket, the upgrade request is inspected; message inspection is a knob. **Open:** HTTP/3.
+**Protocols.** HTTP/1.1, HTTP/2 (ALPN), and WebSocket to clients; HTTP/1.1 to backends. HTTP/2 and WebSocket are decoded to the same request object. For WebSocket, the upgrade request is inspected; message inspection is a knob. **Built so far:** HTTP/1.1 only. *Why first:* it is the smallest surface on which framing safety and single parse can be proven. **Open:** HTTP/3.
 
-**Single parse.** Method, URI (raw and normalized), headers, and a bounded body prefix are decoded once. Normalization (URL decoding, case folding, path canonicalization) matches Suricata's HTTP parser, so imported rules see what they were written against. Each transformation is cached per request.
+**Single parse.** Method, URI (raw and normalized), headers, and a bounded body prefix are decoded once. Normalization matches Suricata's HTTP parser, so imported rules see what they were written against: percent-decode exactly once, collapse repeated slashes, and leave `.` and `..` segments in place so traversal stays visible to rules. Each buffer is computed on first use and cached per request. Suricata transforms (`url_decode`, `to_lowercase`, `compress_whitespace`, `strip_whitespace`) give a rule a changed view of a buffer, also cached. *Rejected:* decoding repeatedly until stable (rules written for Suricata would see different bytes than they expect; double encoding is detected by a rule instead).
+
+**Request bodies** are buffered whole up to `max_body_bytes` (10 MB by default; larger is refused with 413), and rules see the first `body_scan_limit` bytes. *Why buffer:* a verdict must exist before the first byte reaches a backend. *Cost:* memory per in-flight request, bounded by the limit. *Rejected for now:* streaming with prefix inspection (more moving parts for the same guarantee).
 
 **Framing safety.** Ambiguous framing (conflicting length headers, malformed chunking) is rejected with 400. *Why:* request smuggling exploits disagreement between proxy and backend.
 
-**Client IP.** The TCP peer by default, nothing else trusted. Opt in to PROXY protocol, or to `X-Forwarded-For` from named trusted proxy ranges, taking the rightmost untrusted hop. Rate limits key on IPv4 /32 and IPv6 /64, both knobs. The rate-limit map is bounded and evicts idle keys. *Rejected:* always trusting `X-Forwarded-For` (spoofable).
+**Client IP.** The TCP peer by default, nothing else trusted. Opt in to PROXY protocol, or to `X-Forwarded-For` from named trusted proxy ranges, taking the rightmost untrusted hop. Rate limits are token buckets (100 requests per second, burst 50 by default) keyed on IPv4 /32 and IPv6 /64, all knobs. The bucket map is bounded and evicts the least recently used client, who then starts with a full bucket: a bounded leniency chosen over unbounded memory. PROXY protocol is not built yet. *Rejected:* always trusting `X-Forwarded-For` (spoofable).
 
 **Block response.** 403 with an incident ID. Rule details are never returned to the client.
 
-**Open:** timeouts (connect, header, body, idle), graceful drain details, TLS library choice (JDK vs native BoringSSL) pending measurement.
+**Timeouts** are knobs with defaults: header 10 s, idle 60 s, connect 2 s, response 30 s, drain 30 s. TLS uses the JDK provider, TLS 1.2 and 1.3 only.
+
+**Open:** TLS library choice (JDK vs native BoringSSL) pending measurement.
 
 ## 5. Rule engine
 
@@ -63,7 +67,7 @@ Product tenets (`product.md` §4) drive these design tenets:
 
 **Import as-is.** The whole ET Open or ET Pro file is accepted unchanged. Each rule is classified: *active*, *not applicable* (traffic Aegis never sees), or *unsupported* (uses a keyword we do not implement). Counts are reported. An unsupported rule is skipped whole, never partly applied, because dropping one condition widens the match.
 
-**Scoring.** Suricata rules alert or drop; they do not score. Default score comes from a published table of severity by classtype (attack classes score 5/5/3/1 for Critical/Major/Minor/Info; recon 3/3/2/0; policy 2/2/1/0; misc 1/1/0/0). Overridable per classtype or per `sid`. Rules we write carry an explicit `metadata: score N`. Scores add; reaching the threshold blocks.
+**Scoring.** The block threshold is 5 by default. *Why 5:* one high-confidence attack rule blocks alone; weak signals such as a scanner user agent must combine. Suricata rules alert or drop; they do not score. Default score comes from a published table of severity by classtype (attack classes score 5/5/3/1 for Critical/Major/Minor/Info; recon 3/3/2/0; policy 2/2/1/0; misc 1/1/0/0). Overridable per classtype or per `sid`. Rules we write carry an explicit `metadata: score N`. Scores add; reaching the threshold blocks.
 
 **Monitor first.** Imported rulesets start in monitor mode. Promotion to block is per ruleset or per rule. *Why:* tens of thousands of rules written for network IDS will produce false positives against a given application.
 
@@ -71,14 +75,28 @@ Product tenets (`product.md` §4) drive these design tenets:
 
 **Parity.** A traffic corpus replayed through real Suricata and Aegis, with alerts diffed, proves the engine. Suricata's own engine analysis output checks the parser. A target Suricata keyword version is pinned, because ET publishes rule files per version.
 
-**Open:** which multi-pattern library (Aho-Corasick in Java versus Vectorscan, and its licensing); the supported keyword subset; how ingress web-application coverage beyond ET is provided (ET is strongest for egress and command-and-control).
+**Ingress coverage.** ET is strongest for egress and command-and-control, so Aegis ships `aegis-core.rules`: web-attack rules written by us in Suricata syntax, each with `metadata: score N`, enabled in block mode. *Why:* without it no decided ruleset blocks SQL injection, XSS, or path traversal, and the acceptance criteria cannot be met. *Rejected for now:* a CRS (SecLang) importer, a second rule language and engine semantics to match. It stays open as a later addition.
+
+**Multi-pattern prefilter.** Our own Aho-Corasick automaton in Java, built as a flat table with byte-class compression, one per buffer view. *Why:* existing Java libraries are char-keyed tries, slow and large at tens of thousands of patterns; Vectorscan adds a native dependency and a licensing question. *Cost:* code we own and must test. Revisit Vectorscan only if profiling names the prefilter as the limit.
+
+**Regex.** RE2/J. A `pcre` that needs backtracking (lookaround, backreferences) makes its rule unsupported.
+
+**Supported keywords (Suricata 7 syntax).** `content` with `nocase`, `offset`, `depth`, `distance`, `within`, `startswith`, `endswith`, `fast_pattern`; `pcre`; the HTTP request sticky buffers and their legacy modifiers; the four transforms above; `flow` toward the server; and the descriptive keywords (`msg`, `sid`, `rev`, `classtype`, `priority`, `reference`, `metadata`). Support is an allow-list: any other keyword makes the rule unsupported.
+
+**Not inspected yet: responses.** Rules that match server-to-client traffic or response buffers are classified unsupported. *Why:* response inspection means buffering responses, a separate latency and memory decision.
+
+**Not supported: cross-request state.** `flowbits`, `xbits`, `threshold`, and `detection_filter` make a rule unsupported. *Why:* they need state shared across requests and nodes, which contradicts stateless nodes (§12). *Rejected:* per-node state (the same request would match on one node and not on another).
+
+**Open:** a CRS importer; shared rule state; response inspection; tuning the score table against real traffic.
 
 ## 6. Policy and configuration
 
-**Hierarchy.** Built-in profile → global → host/route. Named objects, defined once and referenced by name:
+**Hierarchy.** Built-in profile → global → host/route. `strict`, `balanced`, and `easy` are the built-in **profiles**: each is a complete knob set. Named objects, defined once and referenced by name:
 - **Lists:** typed sets (CIDR, host, URL pattern), inline, from file, or from a plugin.
 - **Rule sets:** imported or authored Suricata rules.
-- **Strategies:** a bundle of rule sets and knobs. `strict`, `balanced`, and `easy` are built-in strategies.
+- **Strategies:** an operator-defined bundle of rule sets and knobs that routes can share. Not built yet.
+
+**Built so far:** one YAML file; profile, global, and route scopes; rule sets; exemptions; `aegis explain`. Floors, strategies, lists from plugins, and hot reload are not built.
 
 **Overrides.** The narrowest scope that sets a knob wins. Overrides use explicit verbs (set, add, remove, disable), never implicit deep merge.
 
@@ -122,6 +140,8 @@ Every partial or skipped inspection is a logged, counted event. Overrides per ro
 
 **Rotation detection.** On each new connection to the origin, Aegis compares the origin's certificate fingerprint with its own copy. A mismatch means the origin rotated, so Aegis fetches the new certificate through the certificate plugin and opens a blind window if the fetch lags.
 
+**Built so far:** both modes, certificates from `file_watch` with hot reload, and upstream verification by CA or pinned fingerprint. A hostname with no configured certificate fails the handshake; there is no default certificate, because presenting another host's identity is worse than refusing. Blind-window passthrough and rotation detection are not built; until they are, a certificate gap in either mode refuses connections.
+
 **Reverse proxy mode. Open:** with no valid certificate and a plain-HTTP backend, passthrough is impossible. Options: serve the expired certificate and record a degraded window, refuse, or choose per host.
 
 **Certificate providers** (each a plugin, each limit stated):
@@ -142,6 +162,8 @@ Legacy estates need adapters: for vaults, odd certificate stores, custom authent
 
 **Commitments:** a stable, versioned API; an SDK with a contract-test kit that holds plugins to the core's engineering bar; one lifecycle (discovery, config, start, health, stop); config validated against the plugin's own registered schema; every plugin failure surfaced loudly in logs and metrics.
 
+**Built so far:** certificate providers and log sinks are discovered with Java's `ServiceLoader` and selected by `type`. This is the seed of the API, not the API.
+
 **Open:** the plugin API shape, the type catalogue, and how failure is contained when nothing isolates it (timeouts, circuit breakers) (`lld-in-progress.md`).
 
 ## 10. Observability
@@ -154,7 +176,7 @@ Legacy estates need adapters: for vaults, odd certificate stores, custom authent
 
 **Correlation.** A request ID is propagated end to end so one request's firewall, WAF, backend, and later egress events join.
 
-**Console safety.** Authentication is undecided (**Open**). Until it is, the console and admin interface bind to localhost or a separate admin port and are off by default, because the console can block IPs, drain backends, and change rules.
+**Console safety.** Authentication is undecided (**Open**). Until it is, the console and admin interface bind to localhost or a separate admin port and are off by default, because the console can block IPs, drain backends, and change rules. **Built so far:** a read-only admin port serving `/metrics` and `/healthz`, bound to localhost. It can change nothing.
 
 ## 11. Performance and the kill test
 

@@ -6,10 +6,10 @@
 
 | Component | Status |
 |---|---|
-| Configuration and type system | Intent captured; design pass deferred |
-| Plugin API | Intent captured; design pass deferred |
-| Rule engine | Direction decided; keyword subset open |
-| TLS and certificates | Model decided; reverse-proxy gap open |
+| Configuration and type system | Minimal YAML built; type system design pass deferred |
+| Plugin API | `ServiceLoader` seed built; design pass deferred |
+| Rule engine | Built for the ingress core; CRS, response inspection, rule state open |
+| TLS and certificates | Both modes built with `file_watch`; blind windows and reverse-proxy gap open |
 | CISO view and taxonomy | Parked |
 | Investigation agent | Parked |
 | Console authentication | Parked |
@@ -17,7 +17,7 @@
 | SSH | Not started |
 | Metrics catalogue | Not started |
 | Endpoint agents | Not started |
-| Implementation sequencing | Parked |
+| Implementation sequencing | Ingress core built first; the rest unsequenced |
 | License | Open |
 
 ## Configuration and type system
@@ -44,12 +44,14 @@
 
 **Decided:** own Java engine; import as-is; skip unsupported rules whole; default scoring table; monitor first; parity corpus.
 
+**Decided at implementation (reasons in HLD §5):** keyword allow-list for Suricata 7; own Aho-Corasick prefilter; RE2/J, with backtracking-only `pcre` unsupported; `aegis-core.rules` for ingress coverage; responses not inspected; stateful keywords unsupported.
+
 **Open:**
-- The supported Suricata keyword subset and the order to add keywords.
-- Multi-pattern library: Aho-Corasick in Java versus Vectorscan. Hyperscan's newer releases moved to a proprietary license; verify before choosing.
-- Linear-time regex engine choice, and how `pcre` features without a linear-time equivalent are handled (probably classified unsupported).
-- Ingress web-application coverage beyond ET. ET is strongest for egress and command and control. OWASP-style coverage comes from CRS (SecLang). Whether to support a CRS subset is undecided.
-- How `flowbits`, `threshold`, and `detection_filter` state is held across requests and nodes.
+- The order in which to add keywords. `urilen`, `bsize`, `isdataat`, and `http.header_names` are the most common in ET among those unsupported.
+- Whether to add a CRS (SecLang) importer.
+- Shared state for `flowbits`, `threshold`, and `detection_filter` across requests and nodes.
+- Response inspection.
+- Parity: replaying a corpus through real Suricata has not been done.
 - The ET severity-to-score table: tune against real traffic.
 
 **Notes:** Suricata rules parse mechanically into a syntax tree. Macro fields (header, direction, protocol, classtype, severity, MITRE, CVE) translate losslessly. Sticky buffers plus `content` render into plain language mechanically. Partly opaque: `pcre` (show regex plus a generated example), `flowbits` (render as links), `byte_test` / `byte_jump` / `lua`. Translation is one-way: Suricata text stays the source, keyed by `sid:rev`. Aegis's own overrides (mode, score, exemptions) live beside the rule and never edit it.
@@ -117,4 +119,11 @@ Software is free with no gated features. Choose an open-source license.
 
 ## Seed material
 
-`../seed/` holds the two original specs. Findings from the gap review that are not yet absorbed into the documents: the Suricata-versus-CRS question for ingress, a benign-traffic false-positive corpus, exact per-rule scores for the acceptance tests, the "why not Envoy plus Coraza plus an egress proxy" answer the PR/FAQ must give, and the design page (diagrams, simulator through a local admin endpoint, generated component map) as a later deliverable.
+`../seed/` holds the two original specs. Findings from the gap review that are not yet absorbed into the documents: the "why not Envoy plus Coraza plus an egress proxy" answer the PR/FAQ must give, and the design page (diagrams, simulator through a local admin endpoint, generated component map) as a later deliverable.
+
+## Gaps found when implementation began
+
+- **Config distribution.** HLD §12 says nodes share configuration and does not say how. Today each node reads its own file.
+- **Kill-test parameters.** `product.md` §8 gives example numbers ("e.g. 5,000 rps", "e.g. 4 vCPU"). A kill criterion needs fixed ones.
+- **Blind-window controls.** HLD §8 says layer-4 controls still apply during a window. Per-request rate limiting cannot apply to undecrypted traffic; which controls survive is unstated.
+- **Floors and hot reload** are designed in outline and not built.

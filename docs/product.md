@@ -50,7 +50,7 @@ When two tenets conflict, the earlier one wins.
 | 5 Explicit failure | Per-case fail knobs, counted events, blind-window metrics. | HLD §7 |
 | 6 Pluggable | Certificates, rule feeds, log sinks, metrics, auth, and detectors are plugins on one API. | HLD §9 |
 | 7 Readable | Published schema, `aegis explain`, an optional `intent` on major objects. | HLD §6 |
-| 8 Free | Every capability ships in the free product. | §9 below |
+| 8 Free | Every capability ships in the free product. | §10 below |
 | 9 Fast | Kill criterion in §8. | HLD §11 |
 
 ## 6. Capabilities
@@ -59,7 +59,7 @@ Described as the whole product. Sequencing is a separate, later question (`lld-i
 
 ### Core path
 - **Firewall.** An IP access list with allow and deny lists and per-client rate limiting. Honest scope: this is an L7 IP ACL, not an L3/L4 network firewall. **Open:** geo rules, port and protocol rules.
-- **WAF.** Runs imported Suricata rules. Rule matches add to a score, and a total at the threshold blocks. Imported rulesets start in monitor mode and are promoted per ruleset or per rule.
+- **WAF.** Runs Suricata rules. Rule matches add to a score, and a total at the threshold (5 by default) blocks. Aegis ships a small core ruleset for web attacks (SQL injection, XSS, path traversal, scanners), written in Suricata syntax and enabled in block mode. Imported rulesets start in monitor mode and are promoted per ruleset or per rule.
 - **Load balancer.** Round-robin, with a passive health check that ejects a failing backend and retries it later. Retries are safe only (see HLD §8).
 - **TLS, two modes.** *Transparent* (Palo Alto style): Aegis holds a copy of the origin's certificate, so clients see the origin's identity. *Reverse proxy* (NGINX style): Aegis terminates with its own certificate. The mode is chosen per hostname.
 
