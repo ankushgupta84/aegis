@@ -18,6 +18,23 @@ public record Skip(Kind kind, String target) {
         SID
     }
 
+    public Skip {
+        if (kind == Kind.SID && !target.matches("\\d{1,9}")) {
+            throw new IllegalArgumentException("A sid skip needs a rule number, e.g. sid:2019401, but got '" + target + "'");
+        }
+        if (kind == Kind.RULE_SET && target.isBlank()) {
+            throw new IllegalArgumentException("A rule_set skip needs the rule set's name, e.g. rule_set:et-open");
+        }
+    }
+
+    /** The rule number of a {@link Kind#SID} skip. */
+    public int sid() {
+        if (kind != Kind.SID) {
+            throw new IllegalStateException("Only a sid skip has a rule number; this skips " + kind);
+        }
+        return Integer.parseInt(target);
+    }
+
     public static Skip rateLimit() {
         return new Skip(Kind.RATE_LIMIT, "");
     }

@@ -146,8 +146,8 @@ public final class Waf {
                         skippedAnything |= enabledRuleSets.contains(skip.target());
                     }
                     case SID -> {
-                        sids.add(Integer.valueOf(skip.target()));
-                        skippedAnything |= enabledSids.contains(Integer.valueOf(skip.target()));
+                        sids.add(skip.sid());
+                        skippedAnything |= enabledSids.contains(skip.sid());
                     }
                     case RATE_LIMIT -> {
                         // The rate limiter enforces this skip; it says nothing about rules.

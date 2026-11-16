@@ -129,6 +129,16 @@ class RuleEngineTest {
     }
 
     @Test
+    void hugeModifierValuesSaturateInsteadOfWrappingIntoAnEmptyWindow() {
+        RuleEngine relative = engine(rule(1, uri("ab").build(),
+                uri("cd").distance(1).within(Integer.MAX_VALUE).build()));
+        RuleEngine absolute = engine(rule(2, uri("cd").offset(1).depth(Integer.MAX_VALUE).build()));
+
+        assertThat(matchUri(relative, "abxcd")).containsExactly(0);
+        assertThat(matchUri(absolute, "xcd")).containsExactly(0);
+    }
+
+    @Test
     void aRelativeConditionTriesLaterOccurrencesOfThePreviousContent() {
         // The first "ab" is followed by "cd" too far away; the second "ab" is close enough.
         RuleEngine engine = engine(rule(1, uri("ab").build(), uri("cd").within(3).build()));

@@ -30,7 +30,7 @@ record ContentStep(int viewId, ContentMatch match) implements Step {
 
     int earliestStart(int previousEnd, int viewLength) {
         int start = match.isRelative()
-                ? previousEnd + match.distance().orElse(0)
+                ? clamped((long) previousEnd + match.distance().orElse(0))
                 : match.offset().orElse(0);
         start = Math.max(0, start);
         if (match.startsWith()) {
@@ -84,12 +84,17 @@ record ContentStep(int viewId, ContentMatch match) implements Step {
     private int windowEnd(int previousEnd) {
         if (match.isRelative()) {
             return match.within().isPresent()
-                    ? previousEnd + match.distance().orElse(0) + match.within().getAsInt()
+                    ? clamped((long) previousEnd + match.distance().orElse(0) + match.within().getAsInt())
                     : Integer.MAX_VALUE;
         }
         return match.depth().isPresent()
-                ? match.offset().orElse(0) + match.depth().getAsInt()
+                ? clamped((long) match.offset().orElse(0) + match.depth().getAsInt())
                 : Integer.MAX_VALUE;
+    }
+
+    /** A rule may carry huge modifier values; their sum must saturate, not wrap into a negative window. */
+    private static int clamped(long position) {
+        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, position));
     }
 
     private boolean matchesIgnoringCaseAt(String view, int start) {
