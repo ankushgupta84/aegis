@@ -23,7 +23,8 @@ import java.util.function.Consumer;
  * load: that is reported once and the previous material stays in use until the files are
  * consistent again.
  *
- * <p>The listener and failure callback run on the polling thread and must not throw.
+ * <p>The listener and failure callback run on the polling thread. A listener that throws is
+ * reported to the failure callback; the failure callback itself must not throw.
  */
 public final class FileWatchCertificateProvider implements CertificateProvider {
 
@@ -66,8 +67,21 @@ public final class FileWatchCertificateProvider implements CertificateProvider {
             thread.setDaemon(true);
             return thread;
         });
-        poller.scheduleWithFixedDelay(this::pollOnce, pollInterval.toMillis(), pollInterval.toMillis(),
+        poller.scheduleWithFixedDelay(this::pollAndSurvive, pollInterval.toMillis(), pollInterval.toMillis(),
                 TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * A scheduled task that throws is never run again, and nobody is told. A callback that throws
+     * must not end certificate watching that way, so its failure is reported and polling goes on.
+     */
+    void pollAndSurvive() {
+        try {
+            pollOnce();
+        } catch (RuntimeException e) {
+            onFailure.accept(new CertificateUnavailableException(
+                    "watching " + certFile + " hit an unexpected error: " + e, e));
+        }
     }
 
     /** Checks the files once; the scheduler calls this every poll interval, and tests call it directly. */

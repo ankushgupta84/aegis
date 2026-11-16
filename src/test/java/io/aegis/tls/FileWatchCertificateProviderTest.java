@@ -151,6 +151,21 @@ class FileWatchCertificateProviderTest {
     }
 
     @Test
+    void aListenerThatThrowsIsReportedInsteadOfEndingTheWatch() throws Exception {
+        provider = providerFor(TestPki.ecServer("a.example.com"));
+        provider.load();
+        provider.watch(material -> {
+            throw new IllegalStateException("listener broke");
+        }, failures::add);
+        TestPki.write(TestPki.ecServer("a.example.com"), dir.resolve("cert.pem"), dir.resolve("key.pem"));
+
+        provider.pollAndSurvive();
+
+        assertThat(failures).singleElement()
+                .satisfies(failure -> assertThat(failure).hasMessageContaining("listener broke"));
+    }
+
+    @Test
     void pollingDeliversNothingWhileTheFilesAreUnchanged() throws Exception {
         provider = providerFor(TestPki.ecServer("a.example.com"));
         provider.load();
