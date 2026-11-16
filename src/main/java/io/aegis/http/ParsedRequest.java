@@ -101,7 +101,11 @@ public final class ParsedRequest implements RequestBuffers {
         return header("Host").map(ParsedRequest::hostWithoutPort).orElse("");
     }
 
-    private static String hostWithoutPort(String value) {
+    /**
+     * A Host header value lowercased without its port; an IPv6 literal keeps its brackets. Public
+     * because routing needs the host before the request can be parsed, and both must agree.
+     */
+    public static String hostWithoutPort(String value) {
         String host = value.strip().toLowerCase(Locale.ROOT);
         int closingBracket = host.lastIndexOf(']');
         int colon = host.lastIndexOf(':');

@@ -82,4 +82,31 @@ class UriNormalizerTest {
     void highBytesSurviveAsSingleChars() {
         assertThat(UriNormalizer.normalize("/%C3%A9")).isEqualTo("/Ã©");
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "/a/b,              /a/b",
+            "/a/b/,             /a/b/",
+            "/public/../admin,  /admin",
+            "/public/%2e%2e/admin, /admin",
+            "/public/..%2fadmin, /admin",
+            "/a/./b,            /a/b",
+            "/a//b,             /a/b",
+            "/../../etc/passwd, /etc/passwd",
+            "/a/..,             /",
+            "/a/b/..,           /a/",
+            "/a/b/.,            /a/b/",
+            "/,                 /",
+            "/..,               /",
+            "/a/...,            /a/...",
+            "/a/..b,            /a/..b",
+    })
+    void routingPathResolvesDotSegmentsTheWayABackendWould(String raw, String expected) {
+        assertThat(UriNormalizer.routingPath(raw)).isEqualTo(expected);
+    }
+
+    @Test
+    void routingPathDecodesOnlyOnceSoADoubleEncodedDotStaysLiteral() {
+        assertThat(UriNormalizer.routingPath("/public/%252e%252e/admin")).isEqualTo("/public/%2e%2e/admin");
+    }
 }

@@ -1,5 +1,8 @@
 package io.aegis.http;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 /**
  * Produces the {@link RuleBuffer#HTTP_URI} text from a raw request target, following Suricata's
  * default HTTP normalization so imported rules see what they were written against.
@@ -47,6 +50,29 @@ public final class UriNormalizer {
             }
         }
         return collapsed.toString();
+    }
+
+    /**
+     * The path a request is routed by: {@link #normalizePath normalized}, then with {@code .} and
+     * {@code ..} segments resolved as a backend would resolve them.
+     *
+     * <p>Rules must see {@code ..}, but routing must not be fooled by it: {@code /public/../admin}
+     * reaches {@code /admin} on the backend, so it has to be judged by the policy of the route
+     * that owns {@code /admin}. A {@code ..} that would climb above the root stays at the root.
+     */
+    public static String routingPath(String rawPath) {
+        Deque<String> kept = new ArrayDeque<>();
+        String normalized = normalizePath(rawPath);
+        for (String segment : normalized.split("/", -1)) {
+            if (segment.equals("..")) {
+                kept.pollLast();
+            } else if (!segment.equals(".") && !segment.isEmpty()) {
+                kept.addLast(segment);
+            }
+        }
+        boolean endsInDirectory = normalized.endsWith("/") || normalized.endsWith("/.") || normalized.endsWith("/..");
+        String resolved = "/" + String.join("/", kept);
+        return endsInDirectory && !kept.isEmpty() ? resolved + "/" : resolved;
     }
 
     /** Replaces each valid {@code %XX} with its byte; anything else is copied unchanged. */
