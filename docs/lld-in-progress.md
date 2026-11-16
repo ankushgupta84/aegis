@@ -47,7 +47,7 @@
 **Decided at implementation (reasons in HLD §5):** keyword allow-list for Suricata 7; own Aho-Corasick prefilter; RE2/J, with backtracking-only `pcre` unsupported; `aegis-core.rules` for ingress coverage; responses not inspected; stateful keywords unsupported.
 
 **Open:**
-- The order in which to add keywords. `urilen`, `bsize`, `isdataat`, and `http.header_names` are the most common in ET among those unsupported.
+- The order in which to add keywords. Measured on ET Open for Suricata 7 (51,697 rules, November 2026): 13,564 active, 29,012 not applicable (DNS 13,988; TLS 9,854; raw TCP payload 4,151), 9,121 unsupported. The unsupported rules, by first cause: responses 3,293 (`to_client`, `from_server`); `http.header_names` 1,738; `bsize` 1,651; `urilen` 707; `flowbits` 536; `threshold` 354; `isdataat` 124. Three stateless keywords (`http.header_names`, `bsize`, `urilen`) would activate about 4,100 more rules and are the obvious next step.
 - Whether to add a CRS (SecLang) importer.
 - Shared state for `flowbits`, `threshold`, and `detection_filter` across requests and nodes.
 - Response inspection.
