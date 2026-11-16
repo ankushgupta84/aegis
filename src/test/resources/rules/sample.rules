@@ -1,0 +1,93 @@
+# Sample in the style of Emerging Threats Open, written for Aegis tests.
+# Not a real ET file; sids are in the 9000000 range.
+
+# ---- Active: sticky buffers -------------------------------------------------
+alert http $EXTERNAL_NET any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Apache Log4j RCE Attempt (http.uri) (CVE-2021-44228)"; flow:established,to_server; http.uri; content:"${jndi|3a|"; nocase; fast_pattern; reference:cve,2021-44228; classtype:attempted-admin; sid:9000001; rev:3; metadata:attack_target Server, created_at 2021_12_10, cve CVE_2021_44228, deployment Perimeter, signature_severity Critical, updated_at 2022_03_01;)
+alert http $EXTERNAL_NET any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Possible SQL Injection UNION SELECT in URI"; flow:established,to_server; http.uri; content:"union"; nocase; content:"select"; nocase; distance:0; within:20; pcre:"/union\s+(all\s+)?select/Ui"; classtype:web-application-attack; sid:9000002; rev:5; metadata:affected_product Web_Server_Applications, signature_severity Major;)
+alert http $EXTERNAL_NET any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Suspicious User-Agent (sqlmap)"; flow:established,to_server; http.user_agent; content:"sqlmap"; nocase; depth:6; classtype:web-application-attack; sid:9000003; rev:2; metadata:signature_severity Minor;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET POLICY Request with Cookie containing admin=true"; flow:established,to_server; http.cookie; content:"admin=true"; classtype:policy-violation; sid:9000004; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Host header is an IP address"; flow:to_server,established; http.host; pcre:"/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/"; classtype:misc-activity; sid:9000005; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER PHP Webshell upload multipart"; flow:established,to_server; http.content_type; content:"multipart/form-data"; startswith; http.request_body; content:"<?php"; nocase; classtype:web-application-attack; sid:9000006; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Request line probe"; flow:established,to_server; http.request_line; content:"GET /.env HTTP/1.1"; startswith; endswith; classtype:attempted-recon; sid:9000007; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Path traversal in raw URI"; flow:established,to_server; http.uri.raw; content:"../../"; offset:1; fast_pattern:only; classtype:web-application-attack; sid:9000008; rev:4;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Unexpected PUT method"; flow:established,to_server; http.method; content:"PUT"; classtype:web-application-activity; sid:9000009; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Encoded script tag (url_decode)"; flow:established,to_server; http.uri; url_decode; to_lowercase; content:"<script"; classtype:web-application-attack; sid:9000010; rev:2; metadata:signature_severity Major;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Whitespace obfuscated select"; flow:established,to_server; http.request_body; compress_whitespace; content:"select * from"; classtype:web-application-attack; sid:9000011; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER Content-Length zero with body marker (hex CRLF)"; flow:established,to_server; http.header; content:"|0d 0a|Content-Length|3a| 0|0d 0a|"; fast_pattern:3,5; classtype:bad-unknown; sid:9000012; rev:1;)
+
+# ---- Active: legacy modifiers ----------------------------------------------
+alert http $EXTERNAL_NET any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER WordPress xmlrpc brute force"; flow:established,to_server; content:"POST"; http_method; content:"/xmlrpc.php"; http_uri; nocase; content:"wp.getUsersBlogs"; http_client_body; classtype:attempted-user; sid:9000020; rev:2; metadata:signature_severity Major;)
+alert tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ET WEB_SERVER Shellshock in User-Agent"; flow:established,to_server; content:"() {"; http_user_agent; depth:4; content:"/bin/"; http_user_agent; distance:0; classtype:attempted-admin; sid:9000021; rev:1; metadata:signature_severity Critical;)
+alert http any any -> any any (msg:"ET WEB_SERVER Cookie legacy"; flow:established,to_server; content:"PHPSESSID=x"; http_cookie; content:"example.com"; http_host; content:"application/x-www-form"; http_content_type; content:"/a.php?x="; http_raw_uri; content:"Evil"; http_header; classtype:trojan-activity; sid:9000022; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER Mixed sticky then legacy"; flow:established,to_server; http.uri; content:"/admin"; content:"X-Forwarded-For"; http_header; content:"/panel"; sid:9000023; rev:1;)
+
+# ---- Active: pcre flags ----------------------------------------------------
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER pcre URI flag"; flow:established,to_server; pcre:"/\/etc\/passwd/U"; classtype:web-application-attack; sid:9000030; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER pcre body dotall multiline"; flow:established,to_server; pcre:"/^eval\(.+?\)$/Psm"; classtype:web-application-attack; sid:9000031; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER pcre negated cookie"; flow:established,to_server; http.uri; content:"/login"; pcre:!"/^\/login$/iR"; classtype:misc-activity; sid:9000032; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER pcre header, ua, host, method, cookie, raw uri flags"; flow:established,to_server; pcre:"/x/H"; pcre:"/x/V"; pcre:"/x/W"; pcre:"/GET|HEAD/M"; pcre:"/id=\d+/C"; pcre:"/%2e%2e/I"; sid:9000033; rev:1;)
+alert http any any -> $HTTP_SERVERS any (msg:"ET WEB_SERVER pcre with semicolon and quote escapes"; flow:established,to_server; http.uri; pcre:"/a;b\"c[;]/i"; sid:9000034; rev:1;)
+
+# ---- Active: escapes, multi-line, address forms -----------------------------
+alert http any any -> any any (msg:"ET WEB_SERVER Escaped \"quote\" and semicolon\; in msg"; flow:established,to_server; http.uri; content:"a\;b\"c\\d\|e"; sid:9000040; rev:1;)
+alert http [$HOME_NET,!10.0.0.1] [1024:65535,!8080] -> [1.1.1.1, 2.2.2.2/24] [80,443,8000:8100] (msg:"ET WEB_SERVER bracketed lists in header"; flow:established,to_server; http.uri; content:"/lists"; sid:9000041; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER Multi-line rule"; \
+    flow:established,to_server; \
+    http.uri; content:"/multi"; \
+    content:"line"; distance:0; classtype:web-application-attack; \
+    sid:9000042; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER Explicit score and priority"; flow:established,to_server; http.uri; content:"/score"; priority:2; classtype:trojan-activity; sid:9000043; rev:1; metadata:score 42, signature_severity Critical;)
+alert http any any -> any any (msg:"ET WEB_SERVER Priority decides severity"; flow:established,to_server; http.uri; content:"/prio"; priority:1; classtype:string-detect; sid:9000044; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER Unknown classtype"; flow:established,to_server; http.uri; content:"/odd"; classtype:made-up-class; sid:9000045; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER Negated content and many references"; flow:established,to_server; http.header; content:!"X-Requested-With"; content:"Accept"; reference:url,example.com/a; reference:cve,2020-1234; reference:cve,2020-9999; sid:9000046; rev:7; gid:1; target:dest_ip;)
+drop http any any -> any any (msg:"ET WEB_SERVER Drop action kept"; flow:established,to_server; http.uri; content:"/drop"; sid:9000047; rev:1;)
+
+# ---- Not applicable --------------------------------------------------------
+alert dns $HOME_NET any -> any any (msg:"ET MALWARE Suspicious DNS query"; dns.query; content:".xyz"; nocase; endswith; classtype:trojan-activity; sid:9000050; rev:1;)
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"ET MALWARE Observed Bad TLS SNI"; flow:established,to_server; tls.sni; content:"evil.example"; sid:9000051; rev:1;)
+alert ssh any any -> any any (msg:"ET POLICY SSH banner"; flow:established; ssh.software; content:"libssh"; sid:9000052; rev:1;)
+alert smb any any -> $HOME_NET any (msg:"ET EXPLOIT SMB probe"; flow:established,to_server; content:"|ff|SMB"; sid:9000053; rev:1;)
+alert udp any any -> any 53 (msg:"ET POLICY UDP raw"; content:"|00 01 00 00|"; sid:9000054; rev:1;)
+alert icmp any any -> any any (msg:"ET SCAN ICMP ping"; itype:8; sid:9000055; rev:1;)
+alert ftp any any -> any any (msg:"ET FTP USER anonymous"; flow:established,to_server; content:"USER anonymous"; sid:9000056; rev:1;)
+alert tcp any any -> $HOME_NET 4444 (msg:"ET TROJAN Raw TCP payload marker"; flow:established,to_server; content:"|de ad be ef|"; classtype:trojan-activity; sid:9000057; rev:1;)
+alert tcp any any -> any any (msg:"ET TROJAN Raw pcre on payload"; flow:established,to_server; pcre:"/^MZ.{58}PE/s"; sid:9000058; rev:1;)
+alert tcp any any -> any any (msg:"ET TROJAN Http uri and then raw payload"; flow:established,to_server; flowbits:isset,x; content:"/x"; sid:9000059; rev:1;)
+
+# ---- Unsupported -----------------------------------------------------------
+alert http any any -> any any (msg:"ET WEB_SERVER flowbits isset"; flow:established,to_server; flowbits:isset,ET.Stage1; http.uri; content:"/stage2"; sid:9000060; rev:1;)
+alert http any any -> any any (msg:"ET SCAN Threshold limited"; flow:established,to_server; http.uri; content:"/scan"; threshold:type limit, track by_src, count 1, seconds 60; sid:9000061; rev:1;)
+alert http any any -> any any (msg:"ET SCAN detection_filter"; flow:established,to_server; http.uri; content:"/df"; detection_filter:track by_src, count 10, seconds 5; sid:9000062; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER byte_test on body"; flow:established,to_server; http.request_body; content:"len="; byte_test:4,>,1000,0,relative,string,dec; sid:9000063; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER byte_jump"; flow:established,to_server; http.request_body; content:"AB"; byte_jump:2,0,relative; sid:9000064; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER byte_extract variable"; flow:established,to_server; http.request_body; content:"len="; byte_extract:1,0,mylen,relative; content:"x"; depth:mylen; sid:9000065; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER isdataat"; flow:established,to_server; http.uri; content:"/id"; isdataat:!10,relative; sid:9000066; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER urilen"; flow:established,to_server; http.uri; content:"/long"; urilen:>200; sid:9000067; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER bsize"; flow:established,to_server; http.uri; bsize:>500; content:"/b"; sid:9000068; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER dsize"; dsize:>100; flow:established,to_server; http.uri; content:"/d"; sid:9000069; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER xbits"; flow:established,to_server; xbits:set,x,track ip_src; http.uri; content:"/xb"; sid:9000070; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER lua"; flow:established,to_server; http.uri; content:"/lua"; lua:check.lua; sid:9000071; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER header_names"; flow:established,to_server; http.header_names; content:"|0d 0a|Host|0d 0a|"; sid:9000072; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER http.accept"; flow:established,to_server; http.accept; content:"*/*"; sid:9000073; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER http.referer"; flow:established,to_server; http.referer; content:"evil"; sid:9000074; rev:1;)
+alert http $HTTP_SERVERS any -> $EXTERNAL_NET any (msg:"ET WEB_SERVER Response with 500"; flow:established,to_client; http.stat_code; content:"500"; sid:9000075; rev:1;)
+alert http $HTTP_SERVERS any -> $EXTERNAL_NET any (msg:"ET WEB_SERVER Response body marker"; flow:established,from_server; file.data; content:"<title>Index of"; sid:9000076; rev:1;)
+alert http $HTTP_SERVERS any -> $EXTERNAL_NET any (msg:"ET WEB_SERVER Server banner"; flow:established,to_client; http.server; content:"Apache/1"; sid:9000077; rev:1;)
+alert http $HTTP_SERVERS any -> $EXTERNAL_NET any (msg:"ET WEB_SERVER Legacy response body"; flow:established,to_client; content:"root:x:0:0"; http_server_body; sid:9000078; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER lookahead pcre"; flow:established,to_server; http.uri; pcre:"/id=(?=\d)\d+/"; sid:9000079; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER backreference pcre"; flow:established,to_server; http.uri; pcre:"/(['\"])x\1/"; sid:9000080; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER possessive pcre"; flow:established,to_server; http.uri; pcre:"/a++b/"; sid:9000081; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER anchored pcre flag"; flow:established,to_server; http.uri; pcre:"/^x/A"; sid:9000082; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER no content or pcre"; flow:established,to_server; classtype:misc-activity; sid:9000083; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER score out of range"; flow:established,to_server; http.uri; content:"/s"; sid:9000084; rev:1; metadata:score 500;)
+alert http any any -> any any (msg:"ET WEB_SERVER unknown future keyword"; flow:established,to_server; http.uri; content:"/f"; future_keyword:on; sid:9000085; rev:1;)
+
+# ---- Unparseable -----------------------------------------------------------
+this is not a rule at all
+alert http any any -> any any (msg:"ET WEB_SERVER missing sid"; flow:established,to_server; http.uri; content:"/nosid";)
+alert http any any -> any any (msg:"ET WEB_SERVER bad hex"; flow:established,to_server; http.uri; content:"|zz|"; sid:9000090; rev:1;)
+alert http any any -> any any (msg:"ET WEB_SERVER unterminated quote; flow:established; sid:9000091;)
+alert http any any (msg:"ET WEB_SERVER short header"; sid:9000092;)
+
+# Commented-out rules are skipped.
+#alert http any any -> any any (msg:"ET WEB_SERVER disabled rule"; http.uri; content:"/off"; sid:9000099; rev:1;)
