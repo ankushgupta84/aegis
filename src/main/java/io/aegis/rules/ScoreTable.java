@@ -12,8 +12,8 @@ import java.util.OptionalInt;
  *   <li>{@code metadata: score N}, a number from 0 to 100, always wins;</li>
  *   <li>otherwise the points of the classtype's {@link Category} at the rule's {@link Severity}
  *       (see {@link Category} for the table);</li>
- *   <li>severity comes from {@code metadata: signature_severity}, else from the rule's
- *       {@code priority}, else from the classtype's default priority.</li>
+ *   <li>severity comes from {@code metadata: signature_severity} (unless it says {@code Unknown}),
+ *       else from the rule's {@code priority}, else from the classtype's default priority.</li>
  * </ol>
  *
  * Unreadable score or severity values are errors, never ignored.
@@ -21,6 +21,7 @@ import java.util.OptionalInt;
 final class ScoreTable {
 
     private static final int MAX_SCORE = 100;
+    private static final String UNRATED = "Unknown";
 
     private ScoreTable() {
     }
@@ -48,10 +49,11 @@ final class ScoreTable {
 
     private static Severity severity(Classtypes.Entry entry, OptionalInt priority, Map<String, List<String>> metadata) {
         List<String> named = metadata.get("signature_severity");
-        if (named != null) {
+        // ET itself writes "Unknown" when it has not rated a rule: that is a stated absence, not a bad value.
+        if (named != null && !named.get(named.size() - 1).equalsIgnoreCase(UNRATED)) {
             String text = named.get(named.size() - 1);
             return Severity.fromName(text).orElseThrow(
-                    () -> Rejection.because("metadata signature_severity '" + text + "' is not Critical, Major, Minor or Informational"));
+                    () -> Rejection.because("metadata signature_severity '" + text + "' is not Critical, Major, Minor, Informational or Unknown"));
         }
         return Severity.fromPriority(priority.orElse(entry.priority()));
     }

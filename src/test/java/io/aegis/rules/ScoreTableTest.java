@@ -113,6 +113,12 @@ class ScoreTableTest {
     }
 
     @Test
+    void severity_unknown_means_unrated_so_priority_decides() {
+        assertThat(score("web-application-attack", OptionalInt.of(1), severity("Unknown"))).isEqualTo(5);
+        assertThat(score("web-application-attack", OptionalInt.of(2), severity("unknown"))).isEqualTo(3);
+    }
+
+    @Test
     void unknown_severity_name_is_rejected_rather_than_guessed() {
         assertThatThrownBy(() -> score("trojan-activity", NO_PRIORITY, severity("Severe")))
                 .isInstanceOf(Rejection.class).hasMessageContaining("'Severe'");
