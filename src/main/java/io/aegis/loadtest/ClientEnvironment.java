@@ -11,6 +11,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import java.util.Arrays;
+import java.util.List;
+import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
@@ -76,8 +78,18 @@ final class ClientEnvironment {
         SSLParameters parameters = engine.getSSLParameters();
         // Netty checks the certificate chain but not that it names the host unless asked.
         parameters.setEndpointIdentificationAlgorithm("HTTPS");
+        if (isHostName(host)) {
+            // The JDK sends no server name for a name without a dot, such as "localhost", and a
+            // server that picks its certificate by name then refuses the handshake.
+            parameters.setServerNames(List.of(new SNIHostName(host)));
+        }
         engine.setSSLParameters(parameters);
         return handler;
+    }
+
+    /** An IP literal is not a server name and must not be sent as one. */
+    private static boolean isHostName(String host) {
+        return !host.contains(":") && !host.matches("[0-9.]+");
     }
 
     private static SslContext clientContext(LoadTestOptions options) throws SSLException {

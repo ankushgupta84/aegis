@@ -17,9 +17,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SSLParameters;
 
 /**
  * Connections from one route to its backends. Each event loop keeps its own idle connections and
@@ -118,6 +121,18 @@ final class UpstreamClient {
     private SslHandler sslHandler(SslContext context, Channel channel, BackendAddress backend) {
         SslHandler handler = context.newHandler(channel.alloc(), backend.host(), backend.port());
         handler.setHandshakeTimeoutMillis(connectTimeoutMillis);
+        if (isHostName(backend.host())) {
+            // The JDK sends no server name for a name without a dot, such as "appserver1", and a
+            // backend that picks its certificate by name would then answer with the wrong one.
+            SSLParameters parameters = handler.engine().getSSLParameters();
+            parameters.setServerNames(List.of(new SNIHostName(backend.host())));
+            handler.engine().setSSLParameters(parameters);
+        }
         return handler;
+    }
+
+    /** An IP literal is not a server name and must not be sent as one. */
+    private static boolean isHostName(String host) {
+        return !host.contains(":") && !host.matches("[0-9.]+");
     }
 }
