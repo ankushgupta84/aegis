@@ -71,11 +71,9 @@ public final class Cidr {
     }
 
     private static byte[] literalAddress(String addressPart, String original) {
-        // Only digits, hex letters, dots, and colons: anything else would trigger a DNS lookup.
-        boolean looksLikeLiteral = !addressPart.isEmpty()
-                && addressPart.chars().allMatch(c -> Character.digit(c, 16) >= 0 || c == '.' || c == ':')
-                && (addressPart.indexOf('.') >= 0 || addressPart.indexOf(':') >= 0);
-        if (!looksLikeLiteral) {
+        // Only shapes that InetAddress treats as literals may reach it: anything else would be
+        // looked up in DNS, and a block must never depend on a DNS answer.
+        if (!isDottedQuad(addressPart) && !isIpv6Shape(addressPart)) {
             throw invalid(original);
         }
         try {
@@ -83,6 +81,26 @@ public final class Cidr {
         } catch (UnknownHostException e) {
             throw invalid(original);
         }
+    }
+
+    private static boolean isDottedQuad(String text) {
+        String[] parts = text.split("\\.", -1);
+        if (parts.length != 4) {
+            return false;
+        }
+        for (String part : parts) {
+            boolean number = !part.isEmpty() && part.length() <= 3
+                    && part.chars().allMatch(c -> c >= '0' && c <= '9');
+            if (!number || Integer.parseInt(part) > 255) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isIpv6Shape(String text) {
+        return text.indexOf(':') >= 0
+                && text.chars().allMatch(c -> Character.digit(c, 16) >= 0 || c == ':' || c == '.');
     }
 
     private static int prefixLength(String prefixPart, int maxBits, String original) {

@@ -11,7 +11,10 @@ public enum RuleBuffer {
     /** {@code http.method}: the request method, as sent. */
     HTTP_METHOD("http.method", "http_method"),
 
-    /** {@code http.uri}: the request target, percent-decoded and path-canonicalized. */
+    /**
+     * {@code http.uri}: the request target, percent-decoded once with repeated slashes collapsed.
+     * Dot segments are left in place so traversal stays visible to rules.
+     */
     HTTP_URI("http.uri", "http_uri"),
 
     /** {@code http.uri.raw}: the request target exactly as sent. */

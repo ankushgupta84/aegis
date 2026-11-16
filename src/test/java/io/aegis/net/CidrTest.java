@@ -72,7 +72,10 @@ class CidrTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"localhost", "example.com", "example.com/24", "my-host", "10.0.0.0.example.com"})
+    // "bad.cafe" and "dead.beef" are made only of hex digits and dots, and "1.2.3.4.5" only of
+    // digits and dots: each looks numeric yet would be resolved through DNS if it got that far.
+    @ValueSource(strings = {"localhost", "example.com", "example.com/24", "my-host", "10.0.0.0.example.com",
+            "bad.cafe", "dead.beef/16", "1.2.3.4.5", "1.2.3", "10.1"})
     void rejectsHostNames(String text) {
         assertThatThrownBy(() -> Cidr.parse(text)).isInstanceOf(IllegalArgumentException.class);
     }
