@@ -1,0 +1,725 @@
+# Aegis core web-attack ruleset (Suricata 7 syntax, sids 9000001-9000899).
+#
+# Scoring: the WAF adds the `score` of every rule that matches and blocks at 5 or more.
+#   5  a high-confidence attack on its own (union select, <script, ../../, ${jndi:).
+#   3  suspicious but plausible in legitimate traffic: blocks only with a second signal
+#      (a scanner user-agent, a quote-comment, a single ../, an encoding trick).
+#   1-2 weak tips; none ship today.
+#
+# Views: every attack-class rule inspects one location, because a Suricata rule reads one buffer.
+#   URI    http.uri; url_decode; to_lowercase   decoded once by the parser, once more here: a double-encoded
+#                                                payload shows up here, and "+" becomes a space
+#   BODY   http.request_body; url_decode; url_decode; to_lowercase   the body arrives raw, so two decodes give
+#          form-encoded and JSON bodies the same single and double-encoding coverage as the URI
+#   HEADER http.header; url_decode; url_decode; to_lowercase         every header line, including Cookie and Referer
+# Because the lowercase view is searched, contents and regexes below are written in lowercase.
+# Each rule keys its prefilter on one literal and leaves precision to pcre (RE2: no lookaround).
+#
+# Sid blocks: SQLI 9000001, XSS 9000101, TRAVERSAL 9000201, INCLUSION 9000301, CMDI 9000401,
+#             EXPLOIT 9000501, EVASION 9000601, SCANNER 9000701, PROBE 9000801.
+
+# ==================================================================================================
+# SQLI: SQL injection. Keys on SQL structure (union select, quote then or/and then a comparison,
+# stacked statements, time functions, schema probing), never on a lone keyword, so prose such as
+# "please select one option and union the results" passes. Structural payloads score 5. A quote
+# followed by a SQL comment (O'Brien --) and a select from a user table are plausible in real text
+# and score 3. Equality tautologies are keyed on "=", so <, > and "like" variants are not covered.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI UNION SELECT in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"union"; pcre:"/\bunion(?:\s|\/\*.*?\*\/|\()+(?:(?:all|distinct)(?:\s|\/\*.*?\*\/|\()+)?select\b(?:\s|\/\*.*?\*\/|\()*(?:[\d*@'\"`]|null\b|\w+(?:\s|\/\*.*?\*\/)*(?:,|\(|\bfrom\b))/"; \
+    classtype:web-application-attack; sid:9000001; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI UNION SELECT in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"union"; pcre:"/\bunion(?:\s|\/\*.*?\*\/|\()+(?:(?:all|distinct)(?:\s|\/\*.*?\*\/|\()+)?select\b(?:\s|\/\*.*?\*\/|\()*(?:[\d*@'\"`]|null\b|\w+(?:\s|\/\*.*?\*\/)*(?:,|\(|\bfrom\b))/"; \
+    classtype:web-application-attack; sid:9000002; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI UNION SELECT in header"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"union"; pcre:"/\bunion(?:\s|\/\*.*?\*\/|\()+(?:(?:all|distinct)(?:\s|\/\*.*?\*\/|\()+)?select\b(?:\s|\/\*.*?\*\/|\()*(?:[\d*@'\"`]|null\b|\w+(?:\s|\/\*.*?\*\/)*(?:,|\(|\bfrom\b))/"; \
+    classtype:web-application-attack; sid:9000003; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then OR/AND tautology in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"="; pcre:"/['\"]\)*\s*(?:or|and|\|\||&&)\s*\(*\s*(?:['\"][^'\"]{0,30}['\"]?|\w+)\s*=\s*(?:['\"]|\w)/"; \
+    classtype:web-application-attack; sid:9000004; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then OR/AND tautology in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"="; pcre:"/['\"]\)*\s*(?:or|and|\|\||&&)\s*\(*\s*(?:['\"][^'\"]{0,30}['\"]?|\w+)\s*=\s*(?:['\"]|\w)/"; \
+    classtype:web-application-attack; sid:9000005; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then OR/AND tautology in header"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"="; pcre:"/['\"]\)*\s*(?:or|and|\|\||&&)\s*\(*\s*(?:['\"][^'\"]{0,30}['\"]?|\w+)\s*=\s*(?:['\"]|\w)/"; \
+    classtype:web-application-attack; sid:9000006; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then OR true then comment in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"or"; pcre:"/['\"]\)*\s*(?:or|\|\|)\s*(?:true|\d+|['\"]{2})\s*(?:--|#|\/\*|\)|&|$)/"; \
+    classtype:web-application-attack; sid:9000007; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then OR true then comment in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"or"; pcre:"/['\"]\)*\s*(?:or|\|\|)\s*(?:true|\d+|['\"]{2})\s*(?:--|#|\/\*|\)|&|$)/"; \
+    classtype:web-application-attack; sid:9000008; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI Numeric AND/OR tautology in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"="; pcre:"/(?:\d|['\")])\s+(?:and|or)\s+(?:\d+\s*(?:=|!=)\s*\d+|['\"][^'\"]{0,20}['\"]\s*=\s*['\"][^'\"]{0,20}['\"])/"; \
+    classtype:web-application-attack; sid:9000009; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Numeric AND/OR tautology opening a body value"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"="; pcre:"/(?:^|&)[^=&]{1,50}=\s*['\"]?-?\d+['\"]?\s+(?:and|or)\s+\d+\s*(?:=|!=)\s*\d+|[\"']\s*:\s*[\"']?-?\d+[\"']?\s+(?:and|or)\s+\d+\s*=\s*\d+/"; \
+    classtype:web-application-attack; sid:9000010; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI Stacked query in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"\;"; pcre:"/\;\s*(?:drop\s+(?:table|database|schema|user|view|index)\s|insert\s+into\s+\w+\s*(?:\(|values|select)|update\s+\w+\s+set\s+\w+\s*=|delete\s+from\s+\w+\s*(?:where|\;|--|#|\)|$)|truncate\s+table\s|alter\s+(?:table|user|database)\s|create\s+(?:table|user|database|function|procedure)\s|exec(?:ute)?\s*(?:\(|@|master|xp_|sp_)|declare\s+@|shutdown\b|waitfor\s+(?:delay|time)\s|select\s+(?:[\d*@(]|null\b|\w+\s*\(|\w+(?:\s*,\s*\w+)*\s+from\s+(?:users?|admin\w*|accounts?|passwords?|members?|customers?|credentials|information_schema)\b))/"; \
+    classtype:web-application-attack; sid:9000011; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Stacked query in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"\;"; pcre:"/\;\s*(?:drop\s+(?:table|database|schema|user|view|index)\s|insert\s+into\s+\w+\s*(?:\(|values|select)|update\s+\w+\s+set\s+\w+\s*=|delete\s+from\s+\w+\s*(?:where|\;|--|#|\)|$)|truncate\s+table\s|alter\s+(?:table|user|database)\s|create\s+(?:table|user|database|function|procedure)\s|exec(?:ute)?\s*(?:\(|@|master|xp_|sp_)|declare\s+@|shutdown\b|waitfor\s+(?:delay|time)\s|select\s+(?:[\d*@(]|null\b|\w+\s*\(|\w+(?:\s*,\s*\w+)*\s+from\s+(?:users?|admin\w*|accounts?|passwords?|members?|customers?|credentials|information_schema)\b))/"; \
+    classtype:web-application-attack; sid:9000012; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then SQL comment in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"'"; pcre:"/'\s*(?:--(?:[^\w]|$)|#|\/\*)/"; \
+    classtype:web-application-attack; sid:9000013; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then SQL comment in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"'"; pcre:"/'\s*(?:--(?:[^\w]|$)|#|\/\*)/"; \
+    classtype:web-application-attack; sid:9000014; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Quote then SQL comment in header"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"'"; pcre:"/'\s*(?:--(?:[^\w]|$)|#|\/\*)/"; \
+    classtype:web-application-attack; sid:9000015; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI sleep() or pg_sleep() in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"sleep"; pcre:"/(?:^|[^.\w])(?:pg_)?sleep\s*\(\s*(?:\d|\$|@|\()/"; \
+    classtype:web-application-attack; sid:9000016; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI sleep() or pg_sleep() after SQL syntax in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"sleep"; pcre:"/(?:\band|\bor|\|\||&&|,|\(|\;|\bthen|\belse|\bselect|\+|=)\s*(?:pg_)?sleep\s*\(\s*(?:\d|\$|@|\()/"; \
+    classtype:web-application-attack; sid:9000017; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI benchmark() delay in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"benchmark"; pcre:"/(?:^|[^.\w])benchmark\s*\(\s*\d{3,}\s*,/"; \
+    classtype:web-application-attack; sid:9000018; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI WAITFOR DELAY in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"waitfor"; pcre:"/waitfor\s+(?:delay|time)\s+['\"]?\d/"; \
+    classtype:web-application-attack; sid:9000019; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE SQLI information_schema probe in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"information_schema"; \
+    classtype:web-application-attack; sid:9000020; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI SELECT FROM a credentials table in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"select"; pcre:"/\bselect\b[^\;]{1,100}?\bfrom\s+(?:users?|admin\w*|accounts?|passwords?|members?|customers?|credentials|logins?|mysql\.\w+|pg_\w+|sqlite_master|sys\w*|dual)\b/"; \
+    classtype:web-application-attack; sid:9000021; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI xp_cmdshell in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"xp_cmdshell"; \
+    classtype:web-application-attack; sid:9000022; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI Subquery after operator in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"select"; pcre:"/(?:\band|\bor|=|\|\||,|\+)\s*\(\s*select\b/"; \
+    classtype:web-application-attack; sid:9000023; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI ORDER BY column probe in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"order"; pcre:"/(?:\d|['\")])\s+order\s+by\s+\d+/"; \
+    classtype:web-application-attack; sid:9000024; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE SQLI MySQL versioned comment in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/*!"; pcre:"/\/\*!\d{0,5}/"; \
+    classtype:web-application-attack; sid:9000025; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+# ==================================================================================================
+# XSS: cross-site scripting. Keys on markup that executes: <script, <iframe, a tag carrying an
+# on*= handler, javascript: followed by a call, data:text/html. Those score 5. A handler with no
+# tag around it (it may sit inside an attribute the application already opened), alert(), reading
+# document.cookie and HTML-entity-escaped tags score 3: documentation and code snippets mention
+# them. javascript: is matched with whitespace stripped, so "java\tscript:" cannot dodge it.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE XSS Script tag in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"<script"; \
+    classtype:web-application-attack; sid:9000101; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Script tag in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"<script"; \
+    classtype:web-application-attack; sid:9000102; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Script tag in header"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"<script"; \
+    classtype:web-application-attack; sid:9000103; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE XSS Tag with event handler in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"<"; pcre:"/<[a-z][^>]{0,200}?[\s\/\"'`]on(?:abort|animation\w+|auxclick|before\w+|blur|cancel|change|click|close|contextmenu|copy|cut|dblclick|drag\w*|drop|end|ended|error|focus\w*|hashchange|input|invalid|key\w+|load\w*|message|mouse\w+|page\w+|paste|pause|play\w*|pointer\w+|popstate|reset|resize|scroll\w*|search|seek\w*|select\w*|show|start|submit|toggle|touch\w+|transition\w+|unload|wheel|begin|finish|repeat)\s*=/"; \
+    classtype:web-application-attack; sid:9000104; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Tag with event handler in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"<"; pcre:"/<[a-z][^>]{0,200}?[\s\/\"'`]on(?:abort|animation\w+|auxclick|before\w+|blur|cancel|change|click|close|contextmenu|copy|cut|dblclick|drag\w*|drop|end|ended|error|focus\w*|hashchange|input|invalid|key\w+|load\w*|message|mouse\w+|page\w+|paste|pause|play\w*|pointer\w+|popstate|reset|resize|scroll\w*|search|seek\w*|select\w*|show|start|submit|toggle|touch\w+|transition\w+|unload|wheel|begin|finish|repeat)\s*=/"; \
+    classtype:web-application-attack; sid:9000105; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Tag with event handler in header"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"<"; pcre:"/<[a-z][^>]{0,200}?[\s\/\"'`]on(?:abort|animation\w+|auxclick|before\w+|blur|cancel|change|click|close|contextmenu|copy|cut|dblclick|drag\w*|drop|end|ended|error|focus\w*|hashchange|input|invalid|key\w+|load\w*|message|mouse\w+|page\w+|paste|pause|play\w*|pointer\w+|popstate|reset|resize|scroll\w*|search|seek\w*|select\w*|show|start|submit|toggle|touch\w+|transition\w+|unload|wheel|begin|finish|repeat)\s*=/"; \
+    classtype:web-application-attack; sid:9000106; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE XSS Bare event handler attribute in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"on"; pcre:"/[\s\"'\/\;>]on(?:abort|animation\w+|auxclick|before\w+|blur|cancel|change|click|close|contextmenu|copy|cut|dblclick|drag\w*|drop|end|ended|error|focus\w*|hashchange|input|invalid|key\w+|load\w*|message|mouse\w+|page\w+|paste|pause|play\w*|pointer\w+|popstate|reset|resize|scroll\w*|search|seek\w*|select\w*|show|start|submit|toggle|touch\w+|transition\w+|unload|wheel|begin|finish|repeat)\s*=/"; \
+    classtype:web-application-attack; sid:9000107; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Bare event handler attribute in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"on"; pcre:"/[\s\"'\/\;>]on(?:abort|animation\w+|auxclick|before\w+|blur|cancel|change|click|close|contextmenu|copy|cut|dblclick|drag\w*|drop|end|ended|error|focus\w*|hashchange|input|invalid|key\w+|load\w*|message|mouse\w+|page\w+|paste|pause|play\w*|pointer\w+|popstate|reset|resize|scroll\w*|search|seek\w*|select\w*|show|start|submit|toggle|touch\w+|transition\w+|unload|wheel|begin|finish|repeat)\s*=/"; \
+    classtype:web-application-attack; sid:9000108; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+
+alert http any any -> any any (msg:"AEGIS CORE XSS javascript: URI scheme in URI"; flow:to_server,established; \
+    http.uri; url_decode; strip_whitespace; to_lowercase; \
+    content:"javascript:"; pcre:"/javascript:(?:alert|prompt|confirm|eval|fetch|void|document\.|window\.|location|top\.|self\.|this\.|history)/"; \
+    classtype:web-application-attack; sid:9000109; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS javascript: URI scheme in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; strip_whitespace; to_lowercase; \
+    content:"javascript:"; pcre:"/javascript:(?:alert|prompt|confirm|eval|fetch|void|document\.|window\.|location|top\.|self\.|this\.|history)/"; \
+    classtype:web-application-attack; sid:9000110; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS data:text/html URI in URI"; flow:to_server,established; \
+    http.uri; url_decode; strip_whitespace; to_lowercase; \
+    content:"data:text/html"; \
+    classtype:web-application-attack; sid:9000111; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE XSS iframe tag in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"<iframe"; \
+    classtype:web-application-attack; sid:9000112; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE XSS iframe tag in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"<iframe"; \
+    classtype:web-application-attack; sid:9000113; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE XSS alert() probe in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"alert"; pcre:"/alert\s*[(`]/"; \
+    classtype:web-application-attack; sid:9000114; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE XSS alert() probe in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"alert"; pcre:"/alert\s*[(`]/"; \
+    classtype:web-application-attack; sid:9000115; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Cookie or location access in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"document."; pcre:"/document\.(?:cookie|domain|location|write)/"; \
+    classtype:web-application-attack; sid:9000116; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Entity or escape encoded script tag in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"script"; pcre:"/(?:&lt\;?|&#0*60\;?|&#x0*3c\;?|\\u003c|\\x3c)\s*\/?script/"; \
+    classtype:web-application-attack; sid:9000117; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE XSS Entity or escape encoded script tag in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"script"; pcre:"/(?:&lt\;?|&#0*60\;?|&#x0*3c\;?|\\u003c|\\x3c)\s*\/?script/"; \
+    classtype:web-application-attack; sid:9000118; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+
+# ==================================================================================================
+# TRAVERSAL: path traversal and local file inclusion. Keys on dot-dot segments and on the files
+# they are used to reach. One ../ is plausible (a relative link in a form, a ?next= value) and scores 3.
+# Two or more in a row, or a named target (/etc/passwd, /proc/self/environ, win.ini, system32,
+# WEB-INF), score 5. In bodies a target counts only after = & " or ../, because administrators
+# legitimately write /etc/hosts in prose.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Single dot-dot segment in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:".."; pcre:"/\.\.(?:[\/\\]|\;\/)/"; \
+    classtype:web-application-attack; sid:9000201; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Single dot-dot segment in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:".."; pcre:"/\.\.(?:[\/\\]|\;\/)/"; \
+    classtype:web-application-attack; sid:9000202; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Repeated dot-dot segments in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:".."; pcre:"/(?:\.\.[\/\\\;]+){2,}/"; \
+    classtype:web-application-attack; sid:9000203; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Three dot-dot segments in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:".."; pcre:"/(?:\.\.[\/\\]+){3,}/"; \
+    classtype:web-application-attack; sid:9000204; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Filter-evading dot sequence in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"..."; pcre:"/\.{4}[\/\\]|\.\.\.\/\.\//"; \
+    classtype:web-application-attack; sid:9000205; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Unix system file in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/etc/"; pcre:"/\/etc\/(?:passwd|shadow|group|sudoers|hosts|fstab|issue|crontab|motd|my\.cnf|resolv\.conf|ssh\/|master\.passwd)/"; \
+    classtype:web-application-attack; sid:9000206; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Unix account file as a body value"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"etc/"; pcre:"/(?:[=&\"']|\.\.[\/\\])\/?etc\/(?:passwd|shadow|group|sudoers|master\.passwd)/"; \
+    classtype:web-application-attack; sid:9000207; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL /proc file in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/proc/"; pcre:"/\/proc\/(?:(?:self|thread-self|\d+)\/(?:environ|cmdline|maps|fd|cwd|root|mem|status|stat|exe)|version|cpuinfo|meminfo|net\/)/"; \
+    classtype:web-application-attack; sid:9000208; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Windows ini file in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:".ini"; pcre:"/(?:win|boot|system)\.ini\b/"; \
+    classtype:web-application-attack; sid:9000209; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Windows system32 path in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"system32"; pcre:"/(?:windows|winnt)[\/\\]system32|system32[\/\\](?:drivers|config|cmd|net)/"; \
+    classtype:web-application-attack; sid:9000210; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL Null byte after file extension in URI"; flow:to_server,established; \
+    http.uri; url_decode; \
+    content:"|00|"; pcre:"/\.(?:php\d?|phtml|jsp|aspx?|html?|txt|jpe?g|png|gif|pdf|xml|ini|conf|cfg|log|inc|bak)\x00/i"; \
+    classtype:web-application-attack; sid:9000211; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE TRAVERSAL WEB-INF or META-INF path in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"-inf/"; pcre:"/\/(?:web|meta)-inf\//"; \
+    classtype:web-application-attack; sid:9000212; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+# ==================================================================================================
+# INCLUSION: remote file inclusion and SSRF. Keys on cloud metadata addresses, loopback and private
+# addresses inside a URL, exotic URL schemes, and URL values in parameters that name a file to
+# include. All score 5. Ordinary redirect=https://example.com/home parameters are not matched:
+# the parameter name or the target address must say "include" or "internal".
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Cloud metadata address in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"169.254.169.254"; \
+    classtype:web-application-attack; sid:9000301; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Cloud metadata address in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"169.254.169.254"; \
+    classtype:web-application-attack; sid:9000302; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Google metadata host in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"metadata.google.internal"; \
+    classtype:web-application-attack; sid:9000303; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Loopback or private address URL in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"://"; pcre:"/(?:https?|ftp):\/\/(?:localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|0x7f\w*|2130706433|\[::1?\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)(?:[:\/?#]|$)/"; \
+    classtype:web-application-attack; sid:9000304; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Loopback or private address in a URL-valued body field"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"://"; pcre:"/(?:\"(?:url|uri|webhook|callback\w*|endpoint|target|dest\w*|image\w*|avatar\w*|link|src|feed|redirect\w*|host)\"\s*:\s*\"|(?:^|&)[\w.\[\]-]*(?:url|uri|webhook|callback|endpoint|dest|image|link|src|feed|redirect|host|proxy)[\w.\[\]-]*=)(?:https?|ftp):\/\/(?:localhost|127\.|0\.0\.0\.0|\[::1?\]|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/"; \
+    classtype:web-application-attack; sid:9000305; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Exotic URL scheme in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"://"; pcre:"/\b(?:gopher|dict|ldaps?|tftp|jar|netdoc|expect|phar|zip|glob|ssh2|sftp|smb|file):\/\//"; \
+    classtype:web-application-attack; sid:9000306; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION Exotic URL scheme in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"://"; pcre:"/\b(?:gopher|dict|tftp|jar|netdoc|expect|phar|glob|ssh2):\/\//"; \
+    classtype:web-application-attack; sid:9000307; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION URL in an include-style parameter in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"://"; pcre:"/(?:^|[?&])(?:file|page|include|inc|require|path|template|module|layout|doc|document|folder|root|dir|view|content|load|conf|style)[\w.\[\]-]*=(?:https?|ftp):\/\//"; \
+    classtype:web-application-attack; sid:9000308; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE INCLUSION URL in an include-style parameter in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"://"; pcre:"/(?:^|&)(?:file|page|include|inc|require|path|template|module|layout|doc|document|folder|root|dir|view|content|load|conf|style)[\w.\[\]-]*=(?:https?|ftp):\/\//"; \
+    classtype:web-application-attack; sid:9000309; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+# ==================================================================================================
+# CMDI: OS command injection. Keys on a shell separator (; | && $( `) directly followed by a common
+# command and something that looks like an argument, so "dogs; cat people" and markdown tables
+# ("| id | name |") pass. Backticks are matched in URIs only, because markdown uses them for code.
+# Reverse-shell and shell-invocation strings are distinctive and score 5 on their own.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE CMDI Semicolon then shell command in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"\;"; pcre:"/\;\s*(?:cat|ls|id|whoami|uname|pwd|hostname|ifconfig|netstat|ps|env|printenv|wget|curl|nc|ncat|netcat|bash|sh|zsh|python[23]?|perl|php|ruby|ping|nslookup|dig|echo|rm|chmod|chown|cp|mv|mkdir|touch|tftp|telnet|sleep|base64|find|grep|tar|dd|kill|useradd|sudo|crontab)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*(?:$|[;&)`<>\n])|\$\{?ifs)/"; \
+    classtype:web-application-attack; sid:9000401; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Semicolon then shell command in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"\;"; pcre:"/\;\s*(?:cat|ls|id|whoami|uname|pwd|hostname|ifconfig|netstat|ps|env|printenv|wget|curl|nc|ncat|netcat|bash|sh|zsh|python[23]?|perl|php|ruby|ping|nslookup|dig|echo|rm|chmod|chown|cp|mv|mkdir|touch|tftp|telnet|sleep|base64|find|grep|tar|dd|kill|useradd|sudo|crontab)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*(?:$|[;&)`<>\n])|\$\{?ifs)/"; \
+    classtype:web-application-attack; sid:9000402; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Pipe then shell command in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"|7c|"; pcre:"/\|\|?\s*(?:cat|ls|id|whoami|uname|pwd|hostname|ifconfig|netstat|ps|env|printenv|wget|curl|nc|ncat|netcat|bash|sh|zsh|python[23]?|perl|php|ruby|ping|nslookup|dig|echo|rm|chmod|chown|cp|mv|mkdir|touch|tftp|telnet|sleep|base64|find|grep|tar|dd|kill|useradd|sudo|crontab)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*(?:$|[&;)`<>])|\$\{?ifs)/"; \
+    classtype:web-application-attack; sid:9000403; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Pipe then shell command in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"|7c|"; pcre:"/\|\|?\s*(?:cat|ls|id|whoami|uname|pwd|hostname|ifconfig|netstat|ps|env|printenv|wget|curl|nc|ncat|netcat|bash|sh|zsh|python[23]?|perl|php|ruby|ping|nslookup|dig|echo|rm|chmod|chown|cp|mv|mkdir|touch|tftp|telnet|sleep|base64|find|grep|tar|dd|kill|useradd|sudo|crontab)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\$\{?ifs)/"; \
+    classtype:web-application-attack; sid:9000404; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Double ampersand then command in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"&&"; pcre:"/&&\s*(?:cat|ls|id|whoami|uname|pwd|wget|curl|nc|bash|sh|ping|echo|rm|dir|type|net|ipconfig|tasklist|systeminfo|del|copy|certutil)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*(?:$|[;&)`<>\n])|\$\{?ifs)/"; \
+    classtype:web-application-attack; sid:9000405; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Double ampersand then command in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"&&"; pcre:"/&&\s*(?:cat|ls|id|whoami|uname|pwd|wget|curl|nc|bash|sh|ping|echo|rm|dir|type|net|ipconfig|tasklist|systeminfo|del|copy|certutil)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*(?:$|[;&)`<>\n])|\$\{?ifs)/"; \
+    classtype:web-application-attack; sid:9000406; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Command substitution in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"$("; pcre:"/\$\(\s*(?:cat|ls|id|whoami|uname|pwd|hostname|wget|curl|nc|bash|sh|ping|echo|nslookup|sleep|base64|env|printenv)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*[)])/"; \
+    classtype:web-application-attack; sid:9000407; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Command substitution in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"$("; pcre:"/\$\(\s*(?:cat|ls|id|whoami|uname|pwd|hostname|wget|curl|nc|bash|sh|ping|echo|nslookup|sleep|base64|env|printenv)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*[)])/"; \
+    classtype:web-application-attack; sid:9000408; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Backtick command substitution in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"`"; pcre:"/[\w=\;&|\/'\"]`\s*(?:cat|ls|id|whoami|uname|pwd|hostname|wget|curl|nc|bash|sh|ping|echo|nslookup|sleep|base64|env|printenv)(?:\s+(?:-\w|[\/~.$\d]|https?:|\w+[.\/]\w)|\s*`)/"; \
+    classtype:web-application-attack; sid:9000409; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Shell interpreter path in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/bin/"; pcre:"/\/bin\/(?:ba|da|z|k|c|a)?sh\b/"; \
+    classtype:web-application-attack; sid:9000410; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Reverse shell via /dev/tcp in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/dev/tcp/"; \
+    classtype:web-application-attack; sid:9000411; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Reverse shell via /dev/tcp in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"/dev/tcp/"; \
+    classtype:web-application-attack; sid:9000412; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI Windows cmd.exe invocation in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"cmd"; pcre:"/\bcmd(?:\.exe)?\s*\/[ck]\s+\S/"; \
+    classtype:web-application-attack; sid:9000413; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI PowerShell with command switch in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"powershell"; pcre:"/powershell(?:\.exe)?\s+(?:-\w+\s+)*-(?:e|ec|enc|encodedcommand|c|command|nop|noprofile|w|windowstyle|ep|executionpolicy)\b/"; \
+    classtype:web-application-attack; sid:9000414; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE CMDI PowerShell with command switch in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"powershell"; pcre:"/powershell(?:\.exe)?\s+(?:-\w+\s+)*-(?:e|ec|enc|encodedcommand|c|command|nop|noprofile|w|windowstyle|ep|executionpolicy)\b/"; \
+    classtype:web-application-attack; sid:9000415; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+# ==================================================================================================
+# EXPLOIT: named, high-impact exploit strings. Each is distinctive enough to score 5 alone:
+# Log4Shell (plain and with nested lookups, in any header, URI or body), Shellshock, Spring4Shell
+# and Spring Cloud Function, PHP stream wrappers, Struts OGNL, template injection reaching Python
+# internals, and XML external entities.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Log4Shell jndi lookup in URI (CVE-2021-44228)"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"${jndi:"; \
+    reference:cve,2021-44228; classtype:attempted-admin; sid:9000501; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2021_44228, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Log4Shell jndi lookup in body (CVE-2021-44228)"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"${jndi:"; \
+    reference:cve,2021-44228; classtype:attempted-admin; sid:9000502; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2021_44228, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Log4Shell jndi lookup in header (CVE-2021-44228)"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"${jndi:"; \
+    reference:cve,2021-44228; classtype:attempted-admin; sid:9000503; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2021_44228, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Log4Shell nested lookup obfuscation in URI (CVE-2021-44228)"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"${"; pcre:"/\$\{[^}]{0,20}\$\{(?:lower:|upper:|::-|env:|sys:|date:|java:|ctx:|k8s:|docker:|spring:|bundle:|main:|web:|log4j:|jndi:)/"; \
+    reference:cve,2021-44228; classtype:attempted-admin; sid:9000504; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2021_44228, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Log4Shell nested lookup obfuscation in body (CVE-2021-44228)"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"${"; pcre:"/\$\{[^}]{0,20}\$\{(?:lower:|upper:|::-|env:|sys:|date:|java:|ctx:|k8s:|docker:|spring:|bundle:|main:|web:|log4j:|jndi:)/"; \
+    reference:cve,2021-44228; classtype:attempted-admin; sid:9000505; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2021_44228, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Log4Shell nested lookup obfuscation in header (CVE-2021-44228)"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"${"; pcre:"/\$\{[^}]{0,20}\$\{(?:lower:|upper:|::-|env:|sys:|date:|java:|ctx:|k8s:|docker:|spring:|bundle:|main:|web:|log4j:|jndi:)/"; \
+    reference:cve,2021-44228; classtype:attempted-admin; sid:9000506; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2021_44228, score 5, signature_severity Critical;)
+
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Shellshock function definition in header (CVE-2014-6271)"; flow:to_server,established; \
+    http.header; \
+    content:"()"; pcre:"/\(\)\s*\{\s*(?:\w+\s*)?[:;]/"; \
+    reference:cve,2014-6271; classtype:attempted-admin; sid:9000507; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2014_6271, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Shellshock function definition in URI (CVE-2014-6271)"; flow:to_server,established; \
+    http.uri; url_decode; \
+    content:"()"; pcre:"/\(\)\s*\{\s*(?:\w+\s*)?[:;]/"; \
+    reference:cve,2014-6271; classtype:attempted-admin; sid:9000508; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2014_6271, score 5, signature_severity Critical;)
+
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Spring4Shell class loader parameter in URI (CVE-2022-22965)"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"classloader"; pcre:"/class\.(?:module\.)?classloader\./"; \
+    reference:cve,2022-22965; classtype:attempted-admin; sid:9000509; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2022_22965, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Spring4Shell class loader parameter in body (CVE-2022-22965)"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"classloader"; pcre:"/class\.(?:module\.)?classloader\./"; \
+    reference:cve,2022-22965; classtype:attempted-admin; sid:9000510; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2022_22965, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Spring Cloud Function routing expression header (CVE-2022-22963)"; flow:to_server,established; \
+    http.header; to_lowercase; \
+    content:"spring.cloud.function.routing-expression"; \
+    reference:cve,2022-22963; classtype:attempted-admin; sid:9000511; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2022_22963, score 5, signature_severity Critical;)
+
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT PHP stream wrapper in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"php://"; pcre:"/php:\/\/(?:input|filter|fd|memory|temp|stdin)/"; \
+    classtype:web-application-attack; sid:9000512; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT PHP stream wrapper in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"php://"; pcre:"/php:\/\/(?:input|filter|fd|memory|temp|stdin)/"; \
+    classtype:web-application-attack; sid:9000513; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Struts OGNL member access in URI (CVE-2017-5638)"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"_memberaccess"; \
+    reference:cve,2017-5638; classtype:attempted-admin; sid:9000514; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2017_5638, score 5, signature_severity Critical;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Struts OGNL member access in header (CVE-2017-5638)"; flow:to_server,established; \
+    http.header; url_decode; url_decode; to_lowercase; \
+    content:"_memberaccess"; \
+    reference:cve,2017-5638; classtype:attempted-admin; sid:9000515; rev:1; \
+    metadata:attack_target Web_Server, cve CVE_2017_5638, score 5, signature_severity Critical;)
+
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Template injection reaching Python internals in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"{{"; pcre:"/\{\{[^}]{0,120}?__(?:class|globals|mro|subclasses|builtins|import|init)__/"; \
+    classtype:web-application-attack; sid:9000516; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT Template injection reaching Python internals in body"; flow:to_server,established; \
+    http.request_body; url_decode; url_decode; to_lowercase; \
+    content:"{{"; pcre:"/\{\{[^}]{0,120}?__(?:class|globals|mro|subclasses|builtins|import|init)__/"; \
+    classtype:web-application-attack; sid:9000517; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE EXPLOIT XML external entity declaration in body"; flow:to_server,established; \
+    http.request_body; to_lowercase; \
+    content:"<!entity"; pcre:"/<!entity\s+(?:%\s+)?\w+\s+(?:system|public)\s+[\"']/"; \
+    classtype:web-application-attack; sid:9000518; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+# ==================================================================================================
+# EVASION: encoding tricks that have no honest use in a request. They score 3 so that they tip a
+# borderline request but never block a client whose library double-encodes by mistake. The
+# payload rules above already see through single and double percent-encoding; these flag the attempt.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE EVASION Double percent-encoding in raw URI"; flow:to_server,established; \
+    http.uri.raw; \
+    content:"%25"; pcre:"/%25[0-9a-f]{2}/i"; \
+    classtype:web-application-attack; sid:9000601; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE EVASION Double percent-encoding in raw body"; flow:to_server,established; \
+    http.request_body; \
+    content:"%25"; pcre:"/%25[0-9a-f]{2}/i"; \
+    classtype:web-application-attack; sid:9000602; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE EVASION Unicode %u encoding in raw URI"; flow:to_server,established; \
+    http.uri.raw; \
+    content:"%u"; nocase; pcre:"/%u[0-9a-f]{4}/i"; \
+    classtype:web-application-attack; sid:9000603; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE EVASION Overlong UTF-8 lead byte C0 in URI"; flow:to_server,established; \
+    http.uri; \
+    content:"|c0|"; pcre:"/[\xc0\xc1][\x1c\x80-\xbf]/"; \
+    classtype:web-application-attack; sid:9000604; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE EVASION Overlong UTF-8 lead byte C1 in URI"; flow:to_server,established; \
+    http.uri; \
+    content:"|c1|"; pcre:"/[\xc0\xc1][\x1c\x80-\xbf]/"; \
+    classtype:web-application-attack; sid:9000605; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE EVASION Null byte in URI"; flow:to_server,established; \
+    http.uri; \
+    content:"|00|"; \
+    classtype:web-application-attack; sid:9000606; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE EVASION CRLF header injection in URI"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"|0d 0a|"; pcre:"/\r\n(?:set-cookie|location|content-(?:length|type)|http\/1\.[01]|transfer-encoding|x-[a-z-]+)/"; \
+    classtype:web-application-attack; sid:9000607; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+
+# ==================================================================================================
+# SCANNER: user-agents of vulnerability scanners and attack tools. A scanner is not an attack by
+# itself, and a defender may run one on purpose, so each scores 3: alone it passes, with any
+# other signal (a quote-comment, a single ../) it blocks. Only the user-agent is inspected.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE SCANNER sqlmap user-agent"; flow:to_server,established; \
+    http.user_agent; content:"sqlmap"; nocase; \
+    classtype:attempted-recon; sid:9000701; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Nikto user-agent"; flow:to_server,established; \
+    http.user_agent; content:"nikto"; nocase; \
+    classtype:attempted-recon; sid:9000702; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Nmap Scripting Engine user-agent"; flow:to_server,established; \
+    http.user_agent; content:"nmap"; nocase; \
+    classtype:attempted-recon; sid:9000703; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER masscan user-agent"; flow:to_server,established; \
+    http.user_agent; content:"masscan"; nocase; \
+    classtype:attempted-recon; sid:9000704; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Nuclei user-agent"; flow:to_server,established; \
+    http.user_agent; content:"nuclei"; nocase; \
+    classtype:attempted-recon; sid:9000705; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER WPScan user-agent"; flow:to_server,established; \
+    http.user_agent; content:"wpscan"; nocase; \
+    classtype:attempted-recon; sid:9000706; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER DirBuster user-agent"; flow:to_server,established; \
+    http.user_agent; content:"dirbuster"; nocase; \
+    classtype:attempted-recon; sid:9000707; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Gobuster user-agent"; flow:to_server,established; \
+    http.user_agent; content:"gobuster"; nocase; \
+    classtype:attempted-recon; sid:9000708; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Acunetix user-agent"; flow:to_server,established; \
+    http.user_agent; content:"acunetix"; nocase; \
+    classtype:attempted-recon; sid:9000709; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Nessus user-agent"; flow:to_server,established; \
+    http.user_agent; content:"nessus"; nocase; \
+    classtype:attempted-recon; sid:9000710; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER Wfuzz user-agent"; flow:to_server,established; \
+    http.user_agent; content:"wfuzz"; nocase; \
+    classtype:attempted-recon; sid:9000711; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER ZGrab user-agent"; flow:to_server,established; \
+    http.user_agent; content:"zgrab"; nocase; \
+    classtype:attempted-recon; sid:9000712; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER feroxbuster user-agent"; flow:to_server,established; \
+    http.user_agent; content:"feroxbuster"; nocase; \
+    classtype:attempted-recon; sid:9000713; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE SCANNER OpenVAS user-agent"; flow:to_server,established; \
+    http.user_agent; content:"openvas"; nocase; \
+    classtype:attempted-recon; sid:9000714; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+
+# ==================================================================================================
+# PROBE: requests for files a web server should never serve: secrets, version-control metadata,
+# application config, backups, debug endpoints. Secrets and VCS metadata score 5 (nobody fetches
+# /.env by accident); low-signal dotfiles, SQL dumps and info pages score 3.
+# ==================================================================================================
+
+alert http any any -> any any (msg:"AEGIS CORE PROBE Secrets and credentials dotfile"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/."; pcre:"/\/\.(?:env(?:\.[a-z0-9_-]{1,12})?(?:[?\/#&]|$)|aws\/|ssh\/|docker\/config|npmrc|pypirc|netrc|bash_history|mysql_history|htpasswd|gnupg\/|kube\/config)/"; \
+    classtype:attempted-recon; sid:9000801; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE Version-control metadata"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/."; pcre:"/\/\.(?:git(?:\/|$)|svn\/|hg\/|bzr\/)/"; \
+    classtype:attempted-recon; sid:9000802; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE Low-signal dotfile"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/."; pcre:"/\/\.(?:ds_store|htaccess|idea\/|vscode\/)/"; \
+    classtype:attempted-recon; sid:9000803; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE WordPress wp-config file or backup"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"wp-config"; \
+    classtype:attempted-recon; sid:9000804; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE SSH private key file"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"id_rsa"; \
+    classtype:attempted-recon; sid:9000805; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE Spring Boot actuator sensitive endpoint"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"/actuator"; pcre:"/\/actuator\/(?:env|heapdump|threaddump|configprops|mappings|beans|loggers|jolokia|httptrace|gateway)/"; \
+    classtype:attempted-recon; sid:9000806; rev:1; \
+    metadata:attack_target Web_Server, score 5, signature_severity Major;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE SQL dump file"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:".sql"; pcre:"/\/[\w.-]*\.sql(?:\.gz|\.zip|\.bz2)?(?:$|\?)/"; \
+    classtype:attempted-recon; sid:9000807; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)
+alert http any any -> any any (msg:"AEGIS CORE PROBE phpinfo page"; flow:to_server,established; \
+    http.uri; url_decode; to_lowercase; \
+    content:"phpinfo"; \
+    classtype:attempted-recon; sid:9000808; rev:1; \
+    metadata:attack_target Web_Server, score 3, signature_severity Minor;)

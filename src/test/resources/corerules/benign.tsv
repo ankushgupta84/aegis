@@ -1,0 +1,242 @@
+id	class	method	target	user_agent	content_type	headers	body	note
+# ---- Names with apostrophes ----
+name-01	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		first_name=Sean&last_name=O%27Brien&email=sean%40example.com	O'Brien in a form field
+name-02	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		first_name=Maria&last_name=D%27Angelo&email=maria%40example.com	D'Angelo in a form field
+name-03	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		name=N%27Golo+Kant%C3%A9&email=n%40example.com	apostrophe and UTF-8 in a name
+name-04	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		name=Mary-Ann+O%27Connor-Smith	hyphen and apostrophe
+name-05	name	POST	/api/users	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"name":"O'Brien","city":"Cote d'Ivoire"}	apostrophes in JSON
+name-06	name	GET	/search?q=O%27Brien	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				O'Brien as a search query
+name-07	name	GET	/search?q=o%27brien+bakery	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				lower-case surname with apostrophe
+name-08	name	GET	/users/o%27brien	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				apostrophe in a path
+name-09	name	POST	/contact	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		message=Hi%2C+I%27m+Sean+O%27Brien.+It%27s+about+order+1234.	contractions and a surname
+name-10	name	POST	/contact	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"message":"It's O'Brien's order -- thanks"}	apostrophes and a dash pair in JSON
+name-11	name	GET	/search?q=L%27Or%C3%A9al	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				apostrophe with UTF-8
+name-12	name	GET	/author/d%27arcy	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				apostrophe in an author path
+name-13	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		last_name=O%27Reilly&company=O%27Reilly+Media	two apostrophes
+name-14	name	GET	/search?q=rock+%27n%27+roll	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				quoted n in a title
+name-15	name	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Referer: https://shop.example.com/search?q=O%27Brien		apostrophe in Referer
+name-16	name	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: last_search=O%27Brien; session=abc123		apostrophe in a cookie
+name-17	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		first_name=Fran%C3%A7ois&last_name=O%27Neil	accent and apostrophe
+name-18	name	POST	/register	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		name=O%E2%80%99Brien	typographic apostrophe
+# ---- Prose that contains SQL words ----
+prose-01	prose	POST	/feedback	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		message=please+select+one+option+and+union+the+results	select and union in prose
+prose-02	prose	GET	/search?q=credit+union+select+a+branch	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				credit union select a branch
+prose-03	prose	GET	/search?q=union+station+hours	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				union station
+prose-04	prose	POST	/survey	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		answer=Select+all+that+apply%3B+update+your+profile+when+done	semicolon then update in prose
+prose-05	prose	POST	/api/notes	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"text":"The union of two sets contains every element from either set. Select any two sets and compute it."}	set theory
+prose-06	prose	GET	/search?q=how+to+select+a+good+laptop+from+the+list	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				select and from in a query
+prose-07	prose	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Order+by+phone+or+online.+Drop+me+a+line+if+you+want+to+update+your+delivery.	order by and drop and update in prose
+prose-08	prose	GET	/search?q=delete+from+cart	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				delete from cart
+prose-09	prose	GET	/search?q=insert+into+slot	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				insert into slot
+prose-10	prose	GET	/help?topic=drop+table+tennis	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				drop table tennis
+prose-11	prose	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Update%3B+select+the+correct+box%3B+drop+the+rest	semicolons before SQL words
+prose-12	prose	GET	/sleep-tracker?hours=8&q=how+to+sleep+better	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				sleep without parentheses
+prose-13	prose	GET	/api/benchmark/results?suite=cpu	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				benchmark without parentheses
+prose-14	prose	GET	/search?q=exec+summary+template	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				exec summary
+prose-15	prose	GET	/search?q=order+by+date+descending	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				order by date
+prose-16	prose	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=I+can%27t+sleep+%28insomnia%29+and+my+order+was+late	sleep followed by words in parentheses
+prose-17	prose	GET	/search?q=select+a+gift	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				select a gift
+prose-18	prose	GET	/search?q=what+is+the+union+of+a+and+b	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				union of a and b
+prose-19	prose	POST	/api/ops	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"op":"union","fields":["select","from"],"mode":"all"}	SQL words as JSON data
+prose-20	prose	GET	/search?q=sql+injection+prevention+checklist	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				security article search
+prose-21	prose	GET	/search?q=how+to+prevent+xss+attacks	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				xss as a topic
+prose-22	prose	GET	/search?q=etc%2Fhosts+not+working	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				etc/hosts without a leading slash
+prose-23	prose	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Use+an+or+condition%3A+show+items+where+color+is+red+or+blue	or in prose
+prose-24	prose	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Meet+me+at+the+union+and+select+a+seat	union and select in prose
+# ---- Comments with -- and /* */ ----
+comm-01	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Great+product+--+would+buy+again	double dash in a comment
+comm-02	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Thanks%21+--+Bob	double dash before a name
+comm-03	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Section+1+--+Overview%0A--+End+of+message+--	dashes on several lines
+comm-04	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"comment":"Works fine /* really */ in prod"}	block comment in JSON
+comm-05	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=%2F*+TODO%3A+fix+later+*%2F	block comment in a form
+comm-06	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=He+said+%27hi%27+--+then+left	quote then dashes: weak signal only
+comm-07	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=%27quoted%27+--+with+dashes	quote then dashes: weak signal only
+comm-08	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=I+love+it+%23blessed+%23winning	hashtags
+comm-09	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		text=Thanks%0A--+%0ABob	email signature delimiter
+comm-10	comment	GET	/search?q=--verbose	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				command-line flag as a query
+comm-11	comment	GET	/search?q=a--b	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double dash inside a word
+comm-12	comment	GET	/reports?range=2024-05-01--2024-05-31	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				date range with double dash
+comm-13	comment	POST	/api/notes	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	text/markdown		Title{LF}-----{LF}Some text under a setext heading{LF}	markdown heading underline
+comm-14	comment	POST	/api/notes	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"sql_help":"In SQL a line comment starts with -- and a block comment with /* */"}	prose about SQL comments
+comm-15	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Price%3A+%2410+--+was+%2415	dashes in a price comparison
+comm-16	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Hello+%2F*+world+*%2F+again	block comment in the middle
+comm-17	comment	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=it%27s+good+--+really	contraction then dashes
+# ---- Code snippets and markdown ----
+code-01	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"title":"Add helper","body":"Steps:\n```python\ndef add(a, b):\n    return a + b\n```"}	python snippet in an issue
+code-02	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"Run `npm install` then `npm test` and check the output."}	inline code spans
+code-03	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"const ok = a < b && c > d;"}	comparison operators in JavaScript
+code-04	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"List<String> names = new ArrayList<>();"}	Java generics
+code-05	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	text/plain		#include <stdio.h>{LF}int main(void) { return 0; }{LF}	C include
+code-06	code	POST	/posts	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		body=%3Cp%3EHello+%3Cb%3Eworld%3C%2Fb%3E%3C%2Fp%3E%3Cbr%2F%3E	harmless HTML
+code-07	code	POST	/posts	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"<a href=\"https://example.com/docs\" target=\"_blank\">docs</a>"}	anchor tag
+code-08	code	POST	/posts	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	text/css		a:hover { color: #fff; background: url(x.png); }	CSS
+code-09	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"git commit -m 'fix bug' && npm test"}	shell line with a harmless command
+code-10	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"print('Hello, world!')  # greet"}	python print
+code-11	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"SELECT name, email FROM customers WHERE active = 1 ORDER BY name;"}	plain SELECT in a body
+code-12	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"CREATE TABLE notes (id INT PRIMARY KEY, body TEXT);"}	CREATE TABLE in a body
+code-13	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"payload":"{\"a\":1,\"b\":[1,2,3]}"}	JSON inside JSON
+code-14	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"Hello {{ user.name }}, welcome back"}	Jinja placeholder
+code-15	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"run: echo ${{ github.actor }} in the workflow"}	GitHub Actions expression
+code-16	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"console.log(`Hello ${name}`)"}	JavaScript template literal
+code-17	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"print(obj.__class__.__name__)"}	Python dunder in code
+code-18	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"time.sleep(5)  # wait for the server"}	Python sleep
+code-19	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"at java.lang.Runtime.exec(Runtime.java:620)"}	stack trace line
+code-20	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"const f = (x) => x * 2;"}	arrow function
+code-21	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"| id | name |\n|----|------|\n| 1 | cat |\n| 2 | dog |"}	markdown table with command-like cells
+code-22	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"Install with: ps aux | grep nginx"}	pipe to grep without flags
+code-23	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"See [the docs](../docs/index.md) and [readme](../../README.md)."}	relative markdown links
+code-24	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"<details><summary>Logs</summary>output here</details>"}	details element
+code-25	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"<kbd>Ctrl</kbd>+<kbd>C</kbd> stops the server"}	kbd tags
+code-26	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"The regex ^[a-z]+$ matches lowercase words."}	regex in prose
+code-27	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"window.alert('saved')"}	alert call: weak signal only
+code-28	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"if (a == b) { return 1; } else { return 0; }"}	braces and comparison
+code-29	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"echo $HOME and ${PATH} are shell variables"}	shell variables in prose
+code-30	code	POST	/issues	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"body":"cd /var/www && npm run build"}	shell chain with npm
+# ---- Mathematical text ----
+math-01	math	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=if+1%3D1+then+the+statement+is+true	1=1 in an explanation
+math-02	math	POST	/api/notes	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"text":"1=1 is always true, so a WHERE clause of 1=1 matches every row."}	1=1 in a JSON note
+math-03	math	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=a%3Cb+and+x%3Ey	a<b and x>y
+math-04	math	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=x+%3C+5+%26%26+y+%3E+3	x < 5 && y > 3
+math-05	math	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		q=2%2B2%3D4+or+3%2B3%3D6	sums joined by or
+math-06	math	GET	/calc?expr=1%3D1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				1=1 as a query
+math-07	math	GET	/calc?expr=a%3Cb	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				a<b as a query
+math-08	math	GET	/products?price%3E=10&price%3C=20	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				range filter
+math-09	math	POST	/api/notes	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"formula":"x = 1 and y = 2"}	formula in JSON
+math-10	math	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		comment=Prove+that+if+1%3D1+and+2%3D2+then+1%2B1%3D2	proof prompt
+math-11	math	GET	/search?q=what+is+1%3D1	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				what is 1=1
+math-12	math	GET	/calc?expr=5%3E3+and+2%3C4	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				comparison chain
+# ---- JSON and XML API bodies ----
+api-01	api	POST	/api/orders	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"customer":{"id":42,"name":"Ann Lee"},"items":[{"sku":"A1","qty":2},{"sku":"B7","qty":1}],"ship_to":"12 Rue d'Azur, Nice"}	nested order
+api-02	api	PUT	/api/profile/42	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"bio":"Coffee, code & cats. Visit https://example.com/me","emoji":"😀"}	profile with URL and emoji
+api-03	api	POST	/graphql	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"query":"{ user(id: 1) { name email } }"}	GraphQL query
+api-04	api	POST	/graphql	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"query":"query Q($id: ID!) { user(id: $id) { ...F } } fragment F on User { name }","variables":{"id":"7"}}	GraphQL with variables
+api-05	api	POST	/soap	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	text/xml; charset=utf-8	SOAPAction: "urn:GetPrice"	<?xml version="1.0"?><soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"><soap:Body><m:GetPrice xmlns:m="https://example.com/prices"><m:Item>Apples</m:Item></m:GetPrice></soap:Body></soap:Envelope>	SOAP envelope
+api-06	api	POST	/api/xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/xml		<order id="7"><item sku="A1" qty="2"/><note>Rush</note></order>	small XML order
+api-07	api	POST	/api/xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/xml		<config><property name="timeout" value="30"/><property name="online" value="true"/></config>	XML attributes starting with on
+api-08	api	POST	/api/xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/xml		<doc><![CDATA[ x<y && y>z ]]></doc>	CDATA section
+api-09	api	POST	/api/ui	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"onChange":"handler","onClick":"open","onLoad":"init"}	JSON keys named like handlers
+api-10	api	POST	/api/search	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"ids":[1,2,3],"filter":{"status":"active"},"sort":"-created"}	filter body
+api-11	api	POST	/api/search	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"query":{"bool":{"must":[{"match":{"title":"cats"}}],"should":[{"term":{"tag":"pets"}}]}}}	Elasticsearch bool query
+api-12	api	PATCH	/api/items/9	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"price":19.99,"discount":null,"tags":["new","sale"]}	patch with null
+api-13	api	POST	/api/search	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"filter":{"and":[{"a":1},{"or":[{"b":2},{"c":3}]}]}}	JSON keys named and/or
+api-14	api	POST	/api/messages	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"html":"&lt;b&gt;bold&lt;/b&gt; and &amp; more"}	escaped HTML entities
+api-15	api	POST	/oauth/token	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		grant_type=authorization_code&code=abc123&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb&client_id=web	OAuth code exchange
+api-16	api	GET	/api/v1/users/42/orders?limit=10&offset=20&sort=-created_at	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				paged listing
+api-17	api	GET	/api/v1/users?filter[name]=bob&fields=id,name&include=orders	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				JSON:API style query
+api-18	api	POST	/api/events	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"events":[{"t":1700000000,"type":"click","x":10,"y":20},{"t":1700000001,"type":"scroll","dy":-120}]}	event batch
+api-19	api	POST	/api/avatar	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"avatar":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="}	image data URL
+api-20	api	POST	/api/templates	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"template":"Dear ${customer}, your order ${order_id} shipped.","vars":["customer","order_id"]}	message template with placeholders
+api-21	api	POST	/api/rules	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"expr":"price > 10 && stock < 5","action":"notify"}	rule expression
+api-22	api	POST	/api/sql-console	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"query":"SELECT * FROM orders WHERE id = 5"}	SQL sent to a reporting API
+# ---- Search queries and paths ----
+srch-01	search	GET	/search?q=red+shoes&page=2	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				simple search
+srch-02	search	GET	/search?q=c%2B%2B+tutorial	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				plus signs in a query
+srch-03	search	GET	/search?q=%22exact+phrase%22	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				quoted phrase
+srch-04	search	GET	/search?q=cats+%26+dogs	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				ampersand in a query
+srch-05	search	GET	/search?q=50%25+off	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				percent sign
+srch-06	search	GET	/search?q=50%25deal	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				percent followed by hex-like letters: weak signal only
+srch-07	search	GET	/search?q=%E2%82%AC100	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				euro sign
+srch-08	search	GET	/search?q=caf%C3%A9	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				accented letter
+srch-09	search	GET	/search?q=%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Cyrillic
+srch-10	search	GET	/search?q=%E6%97%A5%E6%9C%AC%E8%AA%9E	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Japanese
+srch-11	search	GET	/search?q=%F0%9F%98%80+smile	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				emoji
+srch-12	search	GET	/wiki/Z%C3%BCrich	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				UTF-8 in a path
+srch-13	search	GET	/search?q=%C0+la+carte	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Latin-1 A-grave followed by ASCII
+srch-14	search	GET	/search?q=na%C3%AFve+r%C3%A9sum%C3%A9&lang=fr	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				accented words
+srch-15	search	GET	/search?q=%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Arabic
+srch-16	search	GET	/search?q=caf%E9	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				Latin-1 e-acute
+# ---- File names and paths ----
+file-01	file	GET	/files/report..final.pdf	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				double dot in a file name
+file-02	file	GET	/files/archive.tar.gz	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				tar.gz
+file-03	file	GET	/compare/v1..v2	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				diff range with two dots
+file-04	file	GET	/acme/app/compare/main...feature-branch	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				diff range with three dots
+file-05	file	GET	/acme/app/compare/v1.0.0...v1.1.0	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				version range with three dots
+file-06	file	GET	/img/photo.final.v2.jpg	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				several dots in a name
+file-07	file	GET	/a/b/./c	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				single-dot segment
+file-08	file	GET	/static/js/app.min.js?v=1.2.3	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				versioned asset
+file-09	file	GET	/download/My%20File%20(1).pdf	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				spaces and parentheses
+file-10	file	GET	/blog/2024/05/what-is-sql-injection	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				article slug about SQL injection
+file-11	file	GET	/wiki/Path_traversal_attack	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				wiki page about traversal
+file-12	file	GET	/wiki/Cross-site_scripting	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				wiki page about XSS
+file-13	file	GET	/.well-known/acme-challenge/Zk3Qx9b2	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				ACME challenge
+file-14	file	GET	/.well-known/security.txt	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				security.txt
+file-15	file	GET	/favicon.ico	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				favicon
+file-16	file	GET	/robots.txt	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				robots
+file-17	file	GET	/wp-login.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				WordPress login
+file-18	file	POST	/wp-admin/admin-ajax.php	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		action=heartbeat&interval=60&_nonce=ab12cd34	WordPress heartbeat
+file-19	file	GET	/index.php?page=about	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				page parameter
+file-20	file	GET	/download?file=report.pdf	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				file parameter
+file-21	file	GET	/download?file=notes%2F2024%2Fjan.txt	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				sub-path file parameter
+file-22	file	GET	/download?file=../README.md	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				single ../ : weak signal only
+file-23	file	GET	/products/bench-mark-set	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				benchmark in a slug
+file-24	file	GET	/category/union-jack-flags	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				union in a slug
+file-25	file	GET	/admin/dashboard	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				admin page
+file-26	file	GET	/orders/3f2b8c1e-9d4a-4c1b-8f6e-2a7d5b9e1c3f	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				UUID path
+file-27	file	GET	/static/chunk.4f8a9c2e1b.js	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				hashed chunk
+# ---- URLs passed as parameters ----
+url-01	url	GET	/login?redirect=https://example.com/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				redirect to an HTTPS URL
+url-02	url	GET	/login?next=%2Fdashboard%3Ftab%3Dsettings	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded relative redirect
+url-03	url	GET	/logout?returnUrl=https%3A%2F%2Fshop.example.com%2Fcart	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				encoded return URL
+url-04	url	GET	/oauth/callback?code=4%2F0AX4XfWh&state=xyz&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				OAuth callback
+url-05	url	GET	/proxy-image?url=https%3A%2F%2Fcdn.example.com%2Fa%2Fb.png	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				image proxy with a CDN URL
+url-06	url	GET	/share?link=https://example.org/article?id=5&utm_source=x	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				shared link
+url-07	url	GET	/go?to=https://www.wikipedia.org/wiki/SQL	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				outbound link
+url-08	url	GET	/img?image=https://images.example.com/x.jpg	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				image URL
+url-09	url	POST	/api/webhooks	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"webhook":"https://hooks.example.com/services/T000/B000/XXXX","events":["push"]}	public webhook URL
+url-10	url	POST	/api/import	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		image_url=https%3A%2F%2Fcdn.example.com%2Favatar.png	public image URL in a form
+url-11	url	GET	/feed?src=http://news.example.com/rss.xml	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				feed URL
+# ---- Base64 blobs and random tokens ----
+tok-01	token	GET	/verify?token=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				64-character hex token
+tok-02	token	GET	/reset?token=Zm9vYmFyYmF6cXV4LXF1dXgtY29yZ2UtZ3JhdWx0LWdhcnBseS13YWxkbw	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				base64url token
+tok-03	token	GET	/api/me	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Ik9cJ0JyaWVuIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c		JWT bearer token
+tok-04	token	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: session=dGhpcyBpcyBhIGxvbmcgc2Vzc2lvbiBibG9iIHdpdGggKy8gY2hhcnM+Pz8/Pz4+Pz8=; theme=dark		base64 cookie
+tok-05	token	POST	/api/upload	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		data=VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4gUGFjayBteSBib3ggd2l0aCBmaXZlIGRvemVuIGxpcXVvciBqdWdzLiBIb3cgdmV4aW5nbHkgcXVpY2sgZGF6emxpbmcgemVicmFzIGp1bXAh	base64 form field
+tok-06	token	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		If-None-Match: W/"33a64df551425fcc55e4d42a148795d9f25f89d4"		ETag validator
+tok-07	token	GET	/s/8c5e1b2a-77f0-4d1e-9a3b-0f6c2d4e8a91/session/abcdef0123456789abcdef0123456789abcdef0123456789	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0				long ids in a path
+tok-08	token	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Authorization: Basic dXNlcjpwYXNzd29yZA==		basic auth header
+# ---- Browser, library and monitoring user-agents ----
+ua-01	ua	GET	/home	curl/8.4.0				curl
+ua-02	ua	GET	/api/health	python-requests/2.31.0				python-requests
+ua-03	ua	GET	/api/health	Go-http-client/1.1				Go client
+ua-04	ua	GET	/home	Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1				iPhone Safari
+ua-05	ua	GET	/home	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36				Android Chrome
+ua-06	ua	GET	/metrics	Prometheus/2.45.0				Prometheus
+ua-07	ua	GET	/	Pingdom.com_bot_version_1.4_(http://www.pingdom.com/)				Pingdom
+ua-08	ua	GET	/	Mozilla/5.0 (compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)				UptimeRobot
+ua-09	ua	GET	/healthz	kube-probe/1.28				kube-probe
+ua-10	ua	GET	/healthz	ELB-HealthChecker/2.0				ELB health check
+ua-11	ua	GET	/	Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)				Googlebot
+ua-12	ua	GET	/	Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)				bingbot
+ua-13	ua	GET	/api/v1/items	Apache-HttpClient/4.5.14 (Java/17.0.9)				Apache HttpClient
+ua-14	ua	GET	/api/v1/items	okhttp/4.12.0				OkHttp
+ua-15	ua	GET	/api/v1/items	PostmanRuntime/7.35.0				Postman
+ua-16	ua	GET	/download/tool.tar.gz	Wget/1.21.4				Wget
+ua-17	ua	GET	/api/v1/items	axios/1.6.2				axios
+ua-18	ua	GET	/home	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0				Edge
+ua-19	ua	GET	/home	Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727)				old Internet Explorer
+ua-20	ua	GET	/article/1	Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)				Slack link expander
+ua-21	ua	GET	/article/1	facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)				Facebook crawler
+ua-22	ua	GET	/home	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0				Firefox on Ubuntu
+ua-23	ua	GET	/home	Datadog Agent/7.50.0				Datadog agent
+ua-24	ua	GET	/home	Java/17.0.9				Java HttpURLConnection
+# ---- Realistic header sets ----
+hdr-01	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8{H}Accept-Language: en-US,en;q=0.5{H}Accept-Encoding: gzip, deflate, br{H}Connection: keep-alive{H}Upgrade-Insecure-Requests: 1		browser navigation headers
+hdr-02	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		X-Forwarded-For: 203.0.113.5, 198.51.100.7, 10.0.0.1		forwarding chain
+hdr-03	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: session=abc123; theme=dark; _ga=GA1.2.1234567890.1700000000; consent=%7B%22a%22%3Atrue%7D		analytics and consent cookies
+hdr-04	header	GET	/cart	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: cart=%7B%22items%22%3A%5B1%2C2%5D%7D		JSON in a cookie
+hdr-05	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Cookie: pref=a%3D1%26b%3D2		encoded equals and ampersand in a cookie
+hdr-06	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Referer: https://www.google.com/search?q=o%27brien+bakery		search engine Referer
+hdr-07	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Referer: https://shop.example.com/search?q=select+union		Referer with SQL words
+hdr-08	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Origin: https://app.example.com{H}X-Requested-With: XMLHttpRequest{H}Accept: application/json, text/plain, */*		XHR headers
+hdr-09	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Sec-Ch-Ua: "Chromium";v="120", "Not(A:Brand";v="24"{H}Sec-Fetch-Mode: navigate{H}Cache-Control: no-cache, max-age=0		client hints
+hdr-10	header	GET	/video.mp4	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Range: bytes=0-1023		range request
+hdr-11	header	GET	/home	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0		Via: 1.1 varnish (Varnish/6.0){H}Forwarded: for=192.0.2.60;proto=http;by=203.0.113.43		proxy headers
+hdr-12	header	POST	/api/echo	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json; charset=utf-8		{"ok":true}	content type with charset
+# ---- Multipart-like bodies ----
+mp-01	multipart	POST	/upload	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW		------WebKitFormBoundary7MA4YWxkTrZu0gW{CRLF}Content-Disposition: form-data; name="title"{CRLF}{CRLF}O'Brien report -- final{CRLF}------WebKitFormBoundary7MA4YWxkTrZu0gW{CRLF}Content-Disposition: form-data; name="file"; filename="report..final.pdf"{CRLF}Content-Type: application/pdf{CRLF}{CRLF}%PDF-1.4 sample content{CRLF}------WebKitFormBoundary7MA4YWxkTrZu0gW--{CRLF}	file upload with a tricky title and name
+mp-02	multipart	POST	/upload	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	multipart/form-data; boundary=BOUND		--BOUND{CRLF}Content-Disposition: form-data; name="csv"; filename="people.csv"{CRLF}Content-Type: text/csv{CRLF}{CRLF}id,name{LF}1,O'Brien{LF}2,D'Angelo{LF}--BOUND--{CRLF}	CSV upload with apostrophes
+mp-03	multipart	POST	/comment	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	multipart/form-data; boundary=XyZ		--XyZ{CRLF}Content-Disposition: form-data; name="comment"{CRLF}{CRLF}Select one -- union the rest{CRLF}--XyZ--{CRLF}	comment with SQL words and dashes
+mp-04	multipart	POST	/upload	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	multipart/form-data; boundary=AaB03x		--AaB03x{CRLF}Content-Disposition: form-data; name="a"{CRLF}{CRLF}1 < 2 > 0{CRLF}--AaB03x{CRLF}Content-Disposition: form-data; name="b"{CRLF}{CRLF}x=y&z=w{CRLF}--AaB03x--{CRLF}	multipart with comparison operators
+# ---- Longer free-text posts ----
+long-01	prose	POST	/forum/post	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/x-www-form-urlencoded		body=Hi+all%2C+I%27m+new+here.+I%27ve+been+reading+about+how+databases+handle+joins+--+left%2C+right%2C+inner+--+and+I+still+don%27t+get+when+to+use+a+union+instead.+My+teacher+says+to+select+only+the+columns+I+need.+Is+that+right%3F+Thanks%21+--+Sam	forum post with contractions, dashes and SQL words
+long-02	prose	POST	/api/articles	Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0	application/json		{"title":"A week in Lisbon","body":"We arrived on Monday -- tired but happy. The hotel (a converted convent) was quiet; breakfast was served from 7 to 10. On Tuesday we took tram 28 to the old town, then walked down to the river. Prices: coffee 1.20, pastel de nata 1.50, dinner 25-30 per person. Highly recommended! Don't miss the sunset at the viewpoint (Miradouro da Senhora do Monte). Rating: 5/5 -- would go again."}	travel article
