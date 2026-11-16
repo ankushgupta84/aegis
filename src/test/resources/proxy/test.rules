@@ -1,0 +1,5 @@
+# Rules for the proxy end-to-end tests. Scores come from metadata, threshold is 5.
+alert http any any -> any any (msg:"SQL injection UNION SELECT"; flow:established,to_server; http.uri; content:"union"; nocase; content:"select"; nocase; distance:0; classtype:web-application-attack; sid:1000001; rev:1; metadata:score 5;)
+alert http any any -> any any (msg:"Scanner user agent"; flow:established,to_server; http.user_agent; content:"nikto"; nocase; classtype:attempted-recon; sid:1000002; rev:1; metadata:score 3;)
+alert http any any -> any any (msg:"Quote comment in URI"; flow:established,to_server; http.uri; content:"'--"; classtype:web-application-attack; sid:1000003; rev:1; metadata:score 3;)
+alert http any any -> any any (msg:"Attack marker in body"; flow:established,to_server; http.request_body; content:"attackmarker"; classtype:web-application-attack; sid:1000004; rev:1; metadata:score 5;)
