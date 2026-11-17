@@ -2,7 +2,7 @@
 
 A firewall, a WAF, and a load balancer on one path: one TLS termination, one parse, one policy. Aegis runs Suricata rules as they are, so Emerging Threats rulesets import unchanged.
 
-Why it exists, and for whom: [`docs/product.md`](docs/product.md). How it is designed, with the reason for each decision: [`docs/high-level-design.md`](docs/high-level-design.md). What is still undecided: [`docs/lld-in-progress.md`](docs/lld-in-progress.md).
+How to run, configure, and operate it: [`docs/guide.md`](docs/guide.md). Why it exists, and for whom: [`docs/product.md`](docs/product.md). How it is designed, with the reason for each decision: [`docs/high-level-design.md`](docs/high-level-design.md). What is still undecided: [`docs/lld-in-progress.md`](docs/lld-in-progress.md).
 
 ## What is built
 
@@ -86,6 +86,8 @@ Of ET Open's 51,697 rules, 13,564 are active today. The breakdown and the keywor
 ## Performance
 
 `scripts/kill-test.sh` runs the test defined in `docs/product.md` §8: the same open-loop load sent straight to a backend and then through Aegis, with the difference in p99 as the result. The load generator measures each request from its intended send time, so a slow server cannot hide its own tail latency.
+
+The sample configuration does not pass it yet. Its 100 requests-per-second rate limit throttles the load generator, so measure with `firewall.rate_limit.enabled: false`. With that change, at 1,000 rps on a 20-core machine, Aegis adds 0.6 ms at p50 and 9.6 ms at p99, but blocks about 2% of benign requests: the 5 ms inspection budget counts garbage-collection pauses, and `balanced` blocks on an overrun. The [guide](docs/guide.md#measuring-overhead) has the details.
 
 ## Layout
 

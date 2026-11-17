@@ -59,7 +59,7 @@ rule_sets:
     mode: block
   # - name: et-open
   #   file: config/rules/emerging-all.rules
-  #   mode: monitor     # imported rule sets start in monitor mode
+  #   mode: monitor     # mode is required; start imported rule sets in monitor
 
 # Global WAF knobs: override a profile default here, or per route below.
 waf:
@@ -76,7 +76,7 @@ exemptions:
 
 tls:
   - hostname: localhost
-    mode: reverse_proxy          # or: transparent
+    mode: reverse_proxy          # transparent is accepted but not built yet
     certificate:
       type: file_watch
       cert_file: config/certs/localhost.crt
